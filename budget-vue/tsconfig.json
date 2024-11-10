@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "Node",
+      "strict": true,
+      "jsx": "preserve",
+      "types": ["vite/client"],
+      "allowJs": true,
+      "resolveJsonModule": true,
+      "isolatedModules": true,
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["src/*"]
+      }
+    },
+    "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "vite-env.d.ts"]
+  }
+  
