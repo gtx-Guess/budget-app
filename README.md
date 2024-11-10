@@ -1,0 +1,1 @@
+I wanted to build a budget app to track my spending. This gets access to a bank account using plaids api as a middle man to auth with your bank.
