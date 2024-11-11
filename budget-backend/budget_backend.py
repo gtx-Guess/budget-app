@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException
+import auth
+import database
 import requests
+from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import *
 from constants import *
@@ -16,17 +18,115 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/login")
-async def login_user_with_credentials(login: LoginDetails):
+@app.post("/authenticated")
+async def authenticate_user(status: dict = Depends(auth.authenticated_user)) -> JSONResponse:
+    # return status
+    return {"status": 404, "detail": "Not verified"}
+
+@app.post("/refresh_token")
+async def generate_new_tokens_using_refresh_token(request: Request, response: Response) -> JSONResponse:
+    old_refresh_token = request.cookies.get("refresh_token")
+    user_id = request.cookies.get("user_id")
+
+    if not old_refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh Token Not Found")
+    
     try:
-        # response = generate_session_token()
-        return JSONResponse(status_code=404, content={"message": "Not Verified!"})
+        payload = auth.verify_refresh_token(old_refresh_token, user_id)
+        if payload == 401:
+            raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+        
+        response = JSONResponse(
+            status_code = 200,
+            content = {"message": "Tokens refreshed!"}
+        )
+        
+        response.set_cookie(
+            key="access_token",
+            value=payload.get('access_token'),
+            httponly=True,
+            max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
+            samesite="none",
+            secure=True
+        )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=payload.get('refresh_token'),
+            httponly=True,
+            max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
+            samesite="none",
+            secure=True
+        )
+
+        return response
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/login")
+async def login_user_with_credentials(userObject: LoginDetails, response: Response) -> JSONResponse:
+    try:
+        is_valid_user, user_id = auth.validate(userObject)
+        if is_valid_user:
+            user_data = {"sub": user_id}
+            access_token = auth.create_token(user_data, "access")
+            refresh_token = auth.create_token(user_data, "refresh")
+
+            refresh_token_resp = database.store_user_refresh_token(user_id, refresh_token)
+            if refresh_token_resp != 200:
+                return JSONResponse(status_code=500, content={"message": "Internal Server Error!"})
+            
+            response = JSONResponse(
+                status_code = 200,
+                content = {"message": "Verified!"}
+            )
+            
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                httponly=True,
+                max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
+                samesite="none",
+                secure=True
+            )
+
+            response.set_cookie(
+                key="refresh_token",
+                value=refresh_token,
+                httponly=True,
+                max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
+                samesite="none",
+                secure=True
+            )
+
+            response.set_cookie(
+                key="user_id",
+                value=user_id,
+                httponly=True,
+                max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
+                samesite="none",
+                secure=True
+            )
+
+            return response
+        else:
+            return JSONResponse(status_code=404, content={"message": "Could not verify user/password combination!"})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post('/create_user')
+async def create_user_with_credentials(user: User) -> JSONResponse:
+    try:
+        response = database.create_user(user, auth.hash_pwd(user.password))
+        if response == 200:
+            return JSONResponse(status_code=200, content={"message": "User created successfully!"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/create_link_token")
-async def create_link_token(link_request: LinkTokenRequest):
+async def create_link_token(link_request: LinkTokenRequest) -> JSONResponse:
     try:
         headers = {
             "Content-Type": "application/json",
@@ -46,7 +146,7 @@ async def create_link_token(link_request: LinkTokenRequest):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/exchange_public_token")
-async def exchange_public_token(request: PublicTokenRequest):
+async def exchange_public_token(request: PublicTokenRequest) -> JSONResponse:
     try:
         response = requests.post(f"{PLAID_URL}/item/public_token/exchange", json={
             "client_id": PLAID_CLIENT_ID,
@@ -64,7 +164,7 @@ async def exchange_public_token(request: PublicTokenRequest):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/get_transactions")
-async def get_transactions(request: TransactionsRequest):
+async def get_transactions(request: TransactionsRequest) -> JSONResponse:
     try:
         response = requests.post(f"{PLAID_URL}/transactions/get", json={
             "client_id": PLAID_CLIENT_ID,

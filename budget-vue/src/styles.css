@@ -1,3 +1,28 @@
 .base-colors{
     background: rgb(115, 253, 216); /* this is the color of the navbar */
 }
+
+/* Apply the background to html and body */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background: linear-gradient(45deg, #ff6ec4, #7873f5, #2ec4b6);
+    background-size: 200% 200%;
+    animation: gradientAnimation 10s ease infinite;
+}
+
+/* Keyframes for the gradient animation */
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
