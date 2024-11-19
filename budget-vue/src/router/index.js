@@ -6,6 +6,7 @@ import CreateUserView from "@/views/CreateUser.vue";
 import axios from "axios";
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 axios.defaults.withCredentials = true;
+axios.defaults.validateStatus = status => status >= 200 && status <= 500;
 
 const routes = [
     {
