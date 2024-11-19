@@ -42,21 +42,25 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresAuth) {
-        const resp = await axios.post(`${BASE_URL}/authenticated`);
-        const authApiResponse = resp.data;
-        if (authApiResponse.status === 200) {
-            next();
-        } else {
-            try {
-                const refreshApiResp = await axios.post(`${BASE_URL}/refresh_token`);
-                if(refreshApiResp.status === 200){
-                    next();
-                }else{
+        try {
+            const resp = await axios.post(`${BASE_URL}/authenticated`);
+            const authApiResponse = resp.data;
+            if (authApiResponse.status === 200) {
+                next();
+            } else {
+                try {
+                    const refreshApiResp = await axios.post(`${BASE_URL}/refresh_token`);
+                    if(refreshApiResp.status === 200){
+                        next();
+                    }else{
+                        next("/login");
+                    };
+                } catch (refreshError) {
                     next("/login");
                 };
-            } catch (refreshError) {
-                next("/login");
             };
+        } catch (error) {
+            console.log("Unhandled error: ", error);
         };
     } else {
         next();
