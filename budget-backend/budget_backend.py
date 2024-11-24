@@ -20,8 +20,7 @@ app.add_middleware(
 
 @app.post("/authenticated")
 async def authenticate_user(status: dict = Depends(auth.authenticated_user)) -> JSONResponse:
-    # return status
-    return {"status": 404, "detail": "Not verified"}
+    return status
 
 @app.post("/refresh_token")
 async def generate_new_tokens_using_refresh_token(request: Request, response: Response) -> JSONResponse:
