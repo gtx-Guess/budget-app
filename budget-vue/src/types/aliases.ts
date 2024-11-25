@@ -10,3 +10,9 @@ export interface LoginApiResponse {
         message: string;
     };
 }
+
+export interface User {
+    first_name: string;
+    last_name: string;
+    email_address: string;
+}

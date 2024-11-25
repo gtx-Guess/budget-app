@@ -13,25 +13,25 @@ const routes = [
         path: "/",
         name: "Home",
         component: HomeView,
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, hideNavbar: false },
     },
     {
         path: "/connect",
         name: "Bank Connection Page",
         component: ConnectToBankView,
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, hideNavbar: false },
     },
     {
         path: "/login",
         name: "Login Page",
         component: LoginView,
-        meta: { hideNavbar: true },
+        meta: { requiresAuth: false, hideNavbar: true },
     },
     {
         path: "/create",
         name: "Create User Page",
         component: CreateUserView,
-        meta: { hideNavbar: true },
+        meta: { requiresAuth: false, hideNavbar: true },
     },
 ];
 

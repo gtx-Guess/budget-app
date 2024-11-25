@@ -12,6 +12,7 @@
   "dependencies": {
     "@jcss/vue-plaid-link": "^1.1.3",
     "axios": "^1.6.2",
+    "pinia": "^2.2.6",
     "plaid": "^29.0.0",
     "vue": "^3.3.8",
     "vue-router": "^4.4.5"
