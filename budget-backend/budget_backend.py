@@ -63,6 +63,37 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/logout")
+async def logout(response: Response) -> JSONResponse:
+    # Create the response object
+    response = JSONResponse(
+        content={"message": "Logged out successfully."},
+        status_code=200
+    )
+    
+    # Delete cookies
+    response.delete_cookie(
+        key="access_token",
+        path="/",  # Ensure this matches the path used to set the cookie
+        samesite="none",
+        secure=True
+    )
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        samesite="none",
+        secure=True
+    )
+    response.delete_cookie(
+        key="user_id",
+        path="/",
+        samesite="none",
+        secure=True
+    )
+    
+    return response
+
+
 @app.post("/login")
 async def login_user_with_credentials(userObject: LoginDetails, response: Response) -> JSONResponse:
     try:
