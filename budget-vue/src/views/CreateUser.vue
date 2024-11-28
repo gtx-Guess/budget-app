@@ -4,13 +4,14 @@
         <AlertBubble :alertText="message" :visible="showMessage" />
         <div class="outer-box">
             <div class="create-box">
-                <section style="height: 145px; margin-top: 55px;">
+                <section style="height: 145px;">
                     <input maxlength="15" type="text" placeholder="User Name" v-model="userName">
                     <input maxlength="20" type="text" placeholder="Password" v-model="password">
                     <input maxlength="40" type="text" placeholder="Email Address" v-model="emailAddress">
                 </section>
-                <section>
+                <section style="height: 85px !important;">
                     <button @click="createAccount">Create Account!</button>
+                    <button><router-link class="router-link" to="/login">Login</router-link></button>
                 </section>
             </div>
         </div>
@@ -66,6 +67,9 @@ const createAccount = async () => {
 
 
 <style scoped>
+.router-link {
+    all:unset;
+}
 
 .create-main {
     display: flex;
@@ -94,7 +98,7 @@ const createAccount = async () => {
     justify-content: space-between;
     align-items: center;
     width: 200px;
-    height: 400px;
+    height: 320px;
 }
 .create-box > section {
     display: flex;

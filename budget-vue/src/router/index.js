@@ -33,6 +33,7 @@ const routes = [
         component: CreateUserView,
         meta: { requiresAuth: false, showNavbar: false },
     },
+    { path: '/:catchAll(.*)', redirect: '/' }
 ];
 
 const router = createRouter({

@@ -24,7 +24,7 @@ const props = defineProps({
 
 aside {
     position: absolute;
-    transform: translate(140%, -70%);
+    transform: translate(135%, -70%);
     text-align: center;
     display: flex;
     justify-content: center;
