@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional
-
 class PublicTokenRequest(BaseModel):
     public_token: str
 

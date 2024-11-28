@@ -1,6 +1,7 @@
 <template>
-    <router-link to="/">Home</router-link>
+    <!-- <router-link to="/">Home</router-link> -->
     <main class="login-main">
+        <AlertBubble :alertText="message" :visible="showMessage" />
         <div class="outer-box">
             <div class="login-box">
                 <section>
@@ -9,7 +10,7 @@
                 </section>
                 <section style="height: 80px;">
                     <button @click="login()">Login</button>
-                    <button>Create Account</button>
+                    <button><router-link class="router-link" to="/create">Create Account</router-link></button>
                 </section>
             </div>
         </div>
@@ -17,20 +18,24 @@
 </template>
 
 <script lang="ts" setup>
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { ref } from 'vue';
 import axios from 'axios';
-import { LoginApiResponse } from '@/types/aliases';
+import { handleMessage, message, showMessage } from '../utils/utils';
+import AlertBubble from '@/components/AlertBubble.vue';
+axios.defaults.withCredentials = true;
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 const userName = ref('');
 const password = ref('');
 
+const route = useRouter();
+
 const login = async () => {
     if(userName.value && password.value){
         try {
-            const resp = await axios.post(`${BASE_URL}/login`, {
+            await axios.post(`${BASE_URL}/login`, {
                 'user': userName.value,
                 'password': password.value
             }, {
@@ -38,26 +43,23 @@ const login = async () => {
                     'Content-Type': 'application/json',
                 },
             });
-            await handleResp(resp).then(() => {
-                // userName.value = '';
-                // password.value = '';
-            });      
+            handleMessage('Logging in!', route, '/');
         } catch (error) {
             console.log(error);
+            handleMessage('Login Unsuccessful, user/password combo failed');
         }
     }else{
-        alert('User and password have to be included!!');
+        handleMessage('User and password have to be included!');
     };
-};
-
-const handleResp = async (resp: LoginApiResponse) => {
-    console.log(resp);
-    console.log("Authenticated successfully!");
 };
 
 </script>
 
 <style scoped>
+.router-link {
+    all:unset;
+}
+
 .login-main {
     display: flex;
     flex-direction: row;
@@ -72,11 +74,11 @@ const handleResp = async (resp: LoginApiResponse) => {
     justify-content: center;
     align-items: center;
     width: 400px;
-    background: rgb(115, 253, 216);
     padding: 10px;
     border-radius: 20px;
     height: 400px;
-    box-shadow: 2px 2px 24px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: 2px 2px 24px rgb(255, 255, 255);
 }
 
 .login-box {

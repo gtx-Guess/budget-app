@@ -1,12 +1,12 @@
 <template>
     <div id="app">
-        <header class="base-margins-width" v-if="!$route.meta.hideNavbar">
+        <header class="base-margins-width" v-if="$route.meta.showNavbar">
             <nav>
                 <ul class="nav-ul">
                     <router-link to="/">Home</router-link>
                     <router-link to="/connect">Connect Bank</router-link>
                     <li>Profile</li>
-                    <router-link to="/login">Login Page</router-link>
+                    <router-link to="/login" @click="logout">Logout</router-link>
                 </ul>
             </nav>
         </header>
@@ -18,8 +18,18 @@
 
 <script lang="ts" setup>
 import { RouterLink } from 'vue-router';
+import axios from 'axios';
+axios.defaults.withCredentials = true;
 
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
+const logout = async () => {
+    await axios.post(`${BASE_URL}/logout`, {}, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+};
 </script>
 
 <style>

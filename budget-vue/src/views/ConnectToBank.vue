@@ -1,32 +1,26 @@
 <template>
     <div>
-        <button :disabled="ready" @click="fetchLinkToken(user)">
+        <button :disabled="!ready" @click="connectBank">
             Connect a bank account
         </button>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch } from 'vue';
 import axios from 'axios';
-import { usePlaidLink } from '@jcss/vue-plaid-link';
+import { usePlaidLinkComposable } from '@/composables/usePlaidLinkComposable';
 import { PlaidUser } from "@/types/aliases";
 
-// Set BASE_URL to the FastAPI backend URL
+const { linkToken, ready, setLinkToken, openPlaidLink } = usePlaidLinkComposable();
+
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 const PRODUCTS = import.meta.env.VITE_PLAID_PRODUCTS.split(",");
 
-// Reactive variable to store the link token and ready state
-const linkToken = ref('');
-const ready = ref(false);
-
 const user = {
-    "id": "tigran-2204"
+    id: "tigran-2204",
 };
 
-// Function to fetch link token
 async function fetchLinkToken(user: PlaidUser) {
-    console.log(user.id)
     try {
         const response = await axios.post(`${BASE_URL}/api/create_link_token`, {
             client_name: "Tigrans Budget App",
@@ -40,52 +34,24 @@ async function fetchLinkToken(user: PlaidUser) {
             },
         });
 
-        linkToken.value = response.data.link_token;
-        ready.value = true; // Enable the button for connecting
-        console.log("Fetched Link Token:", linkToken.value); // Log to verify token
-
+        setLinkToken(response.data.link_token); // Use composable to set the token
+        console.log("Fetched Link Token:", linkToken.value);
     } catch (error) {
-        console.error('Error fetching link token:', error);
+        console.error("Error fetching link token:", error);
     }
 }
 
-// Plaid configuration
-const onSuccess = async (publicToken: string, metadata: unknown) => {
-    try {
-        // Exchange public token for access token
-        const response = await axios.post(`${BASE_URL}/api/exchange_public_token`, {
-            public_token: publicToken,
-        });
-
-        const accessToken = response.data.access_token;
-
-        // Fetch transactions
-        const transactionsResponse = await axios.post(`${BASE_URL}/api/get_transactions`, {
-            access_token: accessToken,
-        });
-
-        console.log("Transactions:", transactionsResponse.data.transactions);
-
-    } catch (error) {
-        console.error("Error fetching transactions:", error);
+async function connectBank() {
+    if (ready.value) {
+        console.log("Fetching link token...");
+        await fetchLinkToken(user);
+        if (ready.value) {
+            console.error("Failed to fetch link token");
+            return;
+        }
     }
-};
-
-
-const config = computed(() => ({
-    token: linkToken.value,
-    onSuccess,
-}));
-
-const { open } = usePlaidLink(config);
-
-// Watcher to open Plaid Link modal when linkToken is set
-watch(linkToken, (newToken) => {
-    if (newToken) {
-        open(); // Open the modal when the linkToken is populated
-    }
-});
-
+    openPlaidLink();
+}
 </script>
 
 <style scoped>
