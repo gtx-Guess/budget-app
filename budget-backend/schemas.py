@@ -1,15 +1,15 @@
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 class PublicTokenRequest(BaseModel):
     public_token: str
 
 class LinkTokenRequest(BaseModel):
-    client_name: str
-    language: str
-    country_codes: list
     user: dict
-    products: list
+    client_name: str
+    products: List[str]
+    country_codes: List[str]
+    language: str
 
 class TransactionsRequest(BaseModel):
     access_token: str

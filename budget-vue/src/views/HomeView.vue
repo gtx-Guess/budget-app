@@ -1,18 +1,48 @@
 <template>
     <div class="home">
-        this is the home view
-        {{ user }}
+        <div v-if="accounts?.data?.length">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account Type</th>
+                        <th>Balance</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="account in accounts.data">
+                        <td>{{ account["fields"]["Institution"] }}</td>
+                        <td>${{ account["fields"]["USD"] }}</td>
+                        <td>{{ account["fields"]["Last Successful Update"] }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div v-else>
+            No accounts loaded yet (length: {{ accounts?.data?.length }})
+        </div>
     </div>
+    <button @click="buttonClicked">Click this button</button>
 </template>
 
 <script lang="ts" setup>
 import { useLocalStore } from '@/stores/localStorage';
+import { storeToRefs } from 'pinia';
+import axios from 'axios';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Access the store instance
 const localStore = useLocalStore();
+const { accounts } = storeToRefs(localStore);
+const { setAccounts } = localStore;
 
-// Destructure state and methods for convenience
-const { user, setUser } = localStore;
+const buttonClicked = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/api/get_airtable_data/accounts`);
+        setAccounts({ data: response.data });
+    } catch (error) {
+        console.error("Error fetching accounts:", error);
+    };
+};
 </script>
 
 <style scoped lang="scss">

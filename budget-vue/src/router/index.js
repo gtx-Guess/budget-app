@@ -3,6 +3,8 @@ import HomeView from "@/views/HomeView.vue";
 import ConnectToBankView from "@/views/ConnectToBank.vue";
 import LoginView from "@/views/Login.vue";
 import CreateUserView from "@/views/CreateUser.vue";
+import ProfileView from "@/views/Profile.vue";
+import TransactionsView from "@/views/Transactions.vue";
 import axios from "axios";
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 axios.defaults.withCredentials = true;
@@ -14,6 +16,18 @@ const routes = [
         name: "Home",
         component: HomeView,
         meta: { requiresAuth: true, showNavbar: true },
+    },
+    {
+        path: "/profile",
+        name: "Profile",
+        component: ProfileView,
+        meta: { requiresAuth: true, showNavbar: true},
+    },
+    {
+        path: "/transactions",
+        name: "Transactions",
+        component: TransactionsView,
+        meta: { requiresAuth: true, showNavbar: true},
     },
     {
         path: "/connect",
