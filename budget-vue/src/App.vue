@@ -5,7 +5,8 @@
                 <ul class="nav-ul">
                     <router-link to="/">Home</router-link>
                     <router-link to="/connect">Connect Bank</router-link>
-                    <li>Profile</li>
+                    <router-link to="/profile">Profile</router-link>
+                    <router-link to="/transactions">Transactions</router-link>
                     <router-link to="/login" @click="logout">Logout</router-link>
                 </ul>
             </nav>

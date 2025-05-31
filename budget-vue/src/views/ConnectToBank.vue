@@ -1,6 +1,6 @@
 <template>
     <div>
-        <button :disabled="!ready" @click="connectBank">
+        <button :disabled="ready" @click="connectBank">
             Connect a bank account
         </button>
     </div>
@@ -42,10 +42,10 @@ async function fetchLinkToken(user: PlaidUser) {
 }
 
 async function connectBank() {
-    if (ready.value) {
+    if (!ready.value) {
         console.log("Fetching link token...");
         await fetchLinkToken(user);
-        if (ready.value) {
+        if (!ready.value) {
             console.error("Failed to fetch link token");
             return;
         }

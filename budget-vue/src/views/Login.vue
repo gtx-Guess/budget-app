@@ -6,7 +6,7 @@
             <div class="login-box">
                 <section>
                     <input maxlength="40" type="text" placeholder="User/Email Address" v-model="userName">
-                    <input maxlength="20" type="text" placeholder="Password" v-model="password">
+                    <input maxlength="20" type="password" placeholder="Password" v-model="password">
                 </section>
                 <section style="height: 80px;">
                     <button @click="login()">Login</button>

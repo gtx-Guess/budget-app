@@ -6,6 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from schemas import *
 from constants import *
 from fastapi.responses import JSONResponse
+from airtable_utils import *
+
+if STAGE == "PROD":
+    plaid_secret = PLAID_PROD_SECRET
+    plaid_url = PLAID_PROD_URL
+else:
+    plaid_secret = PLAID_SANDBOX_SECRET
+    plaid_url = PLAID_SANDBOX_URL
 
 app = FastAPI()
 
@@ -163,10 +171,10 @@ async def create_link_token(link_request: LinkTokenRequest) -> JSONResponse:
         }
         payload = {
             "client_id": PLAID_CLIENT_ID,
-            "secret": PLAID_SECRET,
+            "secret": plaid_secret,
             **link_request.dict(),
         }
-        response = requests.post(f"{PLAID_URL}/link/token/create", json=payload, headers=headers)
+        response = requests.post(f"{plaid_url}/link/token/create", json=payload, headers=headers)
 
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.json())
@@ -178,9 +186,9 @@ async def create_link_token(link_request: LinkTokenRequest) -> JSONResponse:
 @app.post("/api/exchange_public_token")
 async def exchange_public_token(request: PublicTokenRequest) -> JSONResponse:
     try:
-        response = requests.post(f"{PLAID_URL}/item/public_token/exchange", json={
+        response = requests.post(f"{plaid_url}/item/public_token/exchange", json={
             "client_id": PLAID_CLIENT_ID,
-            "secret": PLAID_SECRET,
+            "secret": plaid_secret,
             "public_token": request.public_token,
         })
 
@@ -196,9 +204,9 @@ async def exchange_public_token(request: PublicTokenRequest) -> JSONResponse:
 @app.post("/api/get_transactions")
 async def get_transactions(request: TransactionsRequest) -> JSONResponse:
     try:
-        response = requests.post(f"{PLAID_URL}/transactions/get", json={
+        response = requests.post(f"{plaid_url}/transactions/get", json={
             "client_id": PLAID_CLIENT_ID,
-            "secret": PLAID_SECRET,
+            "secret": plaid_secret,
             "access_token": request.access_token,
             "start_date": request.start_date,
             "end_date": request.end_date,
@@ -209,6 +217,15 @@ async def get_transactions(request: TransactionsRequest) -> JSONResponse:
 
         return response.json()  # Return the transactions data directly
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.get("/api/get_airtable_data/{request_type}")
+async def get_airtable_data(request_type: str) -> JSONResponse:
+    try:
+        response = make_request_to_airtable(request_type)
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
