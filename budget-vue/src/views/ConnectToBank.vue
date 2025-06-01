@@ -7,8 +7,6 @@
 </template>
 
 <script lang="ts" setup>
-import axios from 'axios';
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 </script>
 

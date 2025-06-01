@@ -1,5 +1,6 @@
 <template>
     <div>
+        <button @click="buttonClicked">Click this button</button>
         <div v-if="transactions?.data?.length">
             <table class="table-of-transactions">
                 <thead>
@@ -29,23 +30,22 @@
             No transactions loaded yet (length: {{ transactions?.data?.length }})
         </div>
     </div>
-    <button @click="buttonClicked">Click this button</button>
 </template>
 
 <script lang="ts" setup>
 import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+
 import axios from 'axios';
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
-const { transactions } = storeToRefs(localStore);
+const { transactions, accounts } = storeToRefs(localStore);
 const { setTransactions } = localStore;
 
 const buttonClicked = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/api/get_local_transactions`);
+        const response = await axios.get(`/api/get_local_transactions`);
         setTransactions({ data: response.data });
     } catch (error) {
         console.error("Error fetching transactions:", error);

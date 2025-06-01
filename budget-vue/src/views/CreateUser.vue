@@ -19,13 +19,12 @@
 </template>
 
 <script lang="ts" setup>
+import { handleMessage, message, showMessage } from '../utils/utils';
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
-import axios from 'axios';
-import { handleMessage, message, showMessage } from '../utils/utils';
-import AlertBubble from '@/components/AlertBubble.vue';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+import AlertBubble from '@/components/AlertBubble.vue';
+import axios from 'axios';
 
 const userName = ref('');
 const password = ref('');
@@ -49,7 +48,7 @@ const createAccount = async () => {
     };
 
     try {
-        const resp = await axios.post(`${BASE_URL}/api/create_user`, user, {
+        const resp = await axios.post(`/api/create_user`, user, {
             headers: {
                 'Content-Type': 'application/json',
             },

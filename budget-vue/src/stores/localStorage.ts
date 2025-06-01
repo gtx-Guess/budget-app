@@ -1,6 +1,7 @@
+import { User, Transactions, Accounts } from "@/types/aliases";
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { User, Transactions, Accounts } from "@/types/aliases";
+
 
 export const useLocalStore = defineStore('localStore', () => {
     //vars

@@ -29,7 +29,7 @@
 import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
 import axios from 'axios';
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
 const { accounts } = storeToRefs(localStore);
@@ -37,7 +37,7 @@ const { setAccounts } = localStore;
 
 const buttonClicked = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/api/get_local_accounts`);
+        const response = await axios.get(`/api/get_local_accounts`);
         setAccounts({ data: response.data });
     } catch (error) {
         console.error("Error fetching accounts:", error);
