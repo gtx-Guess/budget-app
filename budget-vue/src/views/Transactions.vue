@@ -45,7 +45,7 @@ const { setTransactions } = localStore;
 
 const buttonClicked = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/api/get_airtable_data/transactions`);
+        const response = await axios.get(`${BASE_URL}/api/get_local_transactions`);
         setTransactions({ data: response.data });
     } catch (error) {
         console.error("Error fetching transactions:", error);
@@ -59,7 +59,6 @@ const sortedTransactions = computed(() => {
     return dateB.getTime() - dateA.getTime()  // Descending (newest first)
   })
 })
-
 </script>
 
 <style scoped>
