@@ -50,4 +50,9 @@ The app automatically manages Airtable's free tier 1,000 record limit by:
 3. Run `docker-compose up --build`
 4. Access the app at http://localhost:5173
 
+## Development URLs
+- **Main App**: http://localhost:5173 (Vue.js frontend)
+- **API**: http://localhost:8000 (FastAPI backend)  
+- **Database**: http://localhost:8080 (phpMyAdmin interface)
+
 This setup gives me real financial data while maintaining complete control over the data flow and storage, all while staying within free tier limits and keeping costs minimal.
