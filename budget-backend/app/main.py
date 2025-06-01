@@ -1,23 +1,27 @@
-import auth
-import database
+import app.services.auth_service as auth
+import app.core.database as database
+import asyncio
+
+from app.core.logger import LOG
+from app.models.schemas import *
+from app.core.constants import *
+from app.services.airtable_service import *
+from app.services.sync_service import sync_service
+
 from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import *
-from constants import *
 from fastapi.responses import JSONResponse
-from airtable_utils import *
 from contextlib import asynccontextmanager
-from sync_service import sync_service
-import asyncio
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting background sync service...")
+    LOG.info("Starting background sync service...")
     sync_task = asyncio.create_task(sync_service.start_background_sync())
     
     yield
     
-    print("Shutting down background sync service...")
+    LOG.info("Shutting down background sync service...")
     sync_service.stop()
     sync_task.cancel()
     try:
@@ -214,4 +218,4 @@ async def get_local_transactions():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# python3 -m uvicorn budget_backend:app --reload
+# python -m uvicorn uvicorn app.main:app --reload

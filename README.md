@@ -24,7 +24,7 @@ I wanted to build a budget app to track my spending. This app connects to my ban
 
 ## Smart Data Management
 The app automatically manages Airtable's free tier 1,000 record limit by:
-- Monitoring record count and triggering cleanup at 85% capacity (850 records)
+- Monitoring record count and triggering cleanup at 80% capacity (800 records)
 - Keeping the most recent 4 months of transactions in Airtable for accessibility
 - Storing complete historical data permanently in the local database
 - Running cleanup automatically during daily syncs

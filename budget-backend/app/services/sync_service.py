@@ -1,9 +1,13 @@
 import asyncio
 import pymysql
+
+from app.core.logger import LOG
+from app.services.airtable_service import make_request_to_airtable
+from app.core.constants import LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
+
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
-from airtable_utils import make_request_to_airtable
-from constants import LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
+from typing import Dict, Any
+
 
 class AirtableSyncService:
     def __init__(self):
@@ -22,22 +26,22 @@ class AirtableSyncService:
             )
             return connection
         except pymysql.MySQLError as e:
-            print(f"Database connection error: {e}")
+            LOG.error(f"Database connection error: {e}")
             return None
 
     async def start_background_sync(self):
         """Start the background sync task"""
-        print("Starting background sync service...")
+        LOG.info("Starting background sync service...")
         self.is_running = True
         
         while self.is_running:
             try:
                 if self.should_sync():
-                    print("Starting scheduled sync...")
+                    LOG.info("Starting scheduled sync...")
                     await self.sync_all_data()
                 await asyncio.sleep(3600)  # Check every hour
             except Exception as e:
-                print(f"Background sync error: {e}")
+                LOG.error(f"Background sync error: {e}")
                 await asyncio.sleep(3600)
 
     def should_sync(self) -> bool:
@@ -66,14 +70,14 @@ class AirtableSyncService:
 
     async def smart_cleanup_if_needed(self) -> Dict[str, Any]:
         """Only clean up if approaching the 1000 record limit"""
-        from airtable_utils import AIRTABLE_API, AIRTABLE_DB_ID, AIRTABLE_TRANSACTIONS
+        from app.services.airtable_service import AIRTABLE_API, AIRTABLE_DB_ID, AIRTABLE_TRANSACTIONS
         
         try:
             table = AIRTABLE_API.table(AIRTABLE_DB_ID, AIRTABLE_TRANSACTIONS)
             all_records = table.all()
             current_count = len(all_records)
             
-            print(f"Current Airtable record count: {current_count}")
+            LOG.info(f"Current Airtable record count: {current_count}")
             
             if current_count > 800:
                 return await self.cleanup_old_airtable_records(months_to_keep=4)
@@ -85,10 +89,10 @@ class AirtableSyncService:
 
     async def cleanup_old_airtable_records(self, months_to_keep: int = 4) -> Dict[str, Any]:
         """Delete old records from Airtable to stay under 1000 record limit"""
-        from airtable_utils import AIRTABLE_API, AIRTABLE_DB_ID, AIRTABLE_TRANSACTIONS
+        from app.services.airtable_service import AIRTABLE_API, AIRTABLE_DB_ID, AIRTABLE_TRANSACTIONS
         
         cutoff_date = datetime.now() - timedelta(days=months_to_keep * 30)
-        print(f"Cleaning up records older than: {cutoff_date}")
+        LOG.info(f"Cleaning up records older than: {cutoff_date}")
         
         try:
             table = AIRTABLE_API.table(AIRTABLE_DB_ID, AIRTABLE_TRANSACTIONS)
@@ -117,7 +121,7 @@ class AirtableSyncService:
                         if record_date < cutoff_date:
                             records_to_delete.append(record['id'])
                     except ValueError as e:
-                        print(f"Date parsing error: {e} for date: {record_date_str}")
+                        LOG.info(f"Date parsing error: {e} for date: {record_date_str}")
                         continue
             
             # Delete old records in batches (Airtable API limit is 10 per request)
@@ -126,10 +130,10 @@ class AirtableSyncService:
                 batch = records_to_delete[i:i+10]
                 table.batch_delete(batch)
                 deleted_count += len(batch)
-                print(f"Deleted batch of {len(batch)} records")
+                LOG.info(f"Deleted batch of {len(batch)} records")
             
             final_count = len(all_records) - deleted_count
-            print(f"Cleanup complete: {deleted_count} deleted, {final_count} remaining")
+            LOG.info(f"Cleanup complete: {deleted_count} deleted, {final_count} remaining")
             
             return {
                 "status": "success",
@@ -139,7 +143,7 @@ class AirtableSyncService:
             }
             
         except Exception as e:
-            print(f"Cleanup error: {e}")
+            LOG.error(f"Cleanup error: {e}")
             return {"status": "error", "message": str(e)}
 
     async def _sync_data_type(self, data_type: str) -> Dict[str, Any]:
@@ -170,7 +174,7 @@ class AirtableSyncService:
             # Log sync completion
             self._log_sync_completion(cursor, connection, sync_id, records_synced, "completed")
             
-            print(f"Synced {records_synced} {data_type} records")
+            LOG.info(f"Synced {records_synced} {data_type} records")
             return {
                 "status": "success", 
                 "records_synced": records_synced,
@@ -180,7 +184,7 @@ class AirtableSyncService:
         except Exception as e:
             connection.rollback()
             self._log_sync_completion(cursor, connection, sync_id, 0, "failed", str(e))
-            print(f"Sync failed for {data_type}: {e}")
+            LOG.error(f"Sync failed for {data_type}: {e}")
             return {"status": "error", "message": str(e)}
         finally:
             cursor.close()
@@ -196,7 +200,7 @@ class AirtableSyncService:
             try:
                 parsed_date = datetime.fromisoformat(last_update)
             except ValueError as e:
-                print(f"Date parsing error for '{last_update}': {e}")
+                LOG.error(f"Date parsing error for '{last_update}': {e}")
                 parsed_date = None
         
         query = """
@@ -220,7 +224,7 @@ class AirtableSyncService:
             return cursor.rowcount
             
         except Exception as e:
-            print(f"Error inserting account {record['id']}: {e}")
+            LOG.error(f"Error inserting account {record['id']}: {e}")
             return 0
 
     def _upsert_transaction(self, cursor, record: Dict) -> int:
@@ -273,7 +277,7 @@ class AirtableSyncService:
     def stop(self):
         """Stop the background sync service"""
         self.is_running = False
-        print("Sync service stopped")
+        LOG.info("Sync service stopped")
 
 # Global instance
 sync_service = AirtableSyncService()

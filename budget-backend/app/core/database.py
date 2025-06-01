@@ -1,8 +1,11 @@
 import pymysql
-from constants import LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
-from schemas import User
 
-print("Setting up connection to local db")
+from app.core.logger import LOG
+from app.models.schemas import User
+from app.core.constants import LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
+
+
+LOG.info("Setting up connection to local db")
 
 connection = None
 cursor = None
@@ -18,9 +21,9 @@ def get_db_connection():
                 database=LOCAL_DB
             )
             cursor = connection.cursor()
-            print(f"Database connected successfully to `{LOCAL_DB}`")
+            LOG.info(f"Database connected successfully to `{LOCAL_DB}`")
         except pymysql.MySQLError as e:
-            print(f"Failed to connect to database: {e}")
+            LOG.error(f"Failed to connect to database: {e}")
             return None, None
     return connection, cursor
 
@@ -37,7 +40,7 @@ def get_refresh_token(user_id: str) -> str:
         results = cur.fetchone()
         return results[0] if results else None
     except pymysql.MySQLError as e:
-        print(f"Database error: {e}")
+        LOG.error(f"Database error: {e}")
         return {"error": "Database error"}
 
 def store_user_refresh_token(user_id: str, token: str):
@@ -55,7 +58,7 @@ def store_user_refresh_token(user_id: str, token: str):
         conn.commit()
         return 200 if resp == 1 else {"error": f"Failed to update row with refresh token for id: {user_id}"}
     except pymysql.MySQLError as e:
-        print(f"Database error: {e}")
+        LOG.error(f"Database error: {e}")
         return {"error": "Database error"}
 
 def get_pwd_hash_from_db_by_user(userObject: object) -> dict:
@@ -71,7 +74,7 @@ def get_pwd_hash_from_db_by_user(userObject: object) -> dict:
         results = cur.fetchone()
         return {"password": results[0], "id": results[1]} if results else None
     except pymysql.MySQLError as e:
-        print(f"Database error: {e}")
+        LOG.error(f"Database error: {e}")
         return {"error": "Database error"}
 
 def create_user(user: User, hashed_pwd: str) -> int:
@@ -87,7 +90,7 @@ def create_user(user: User, hashed_pwd: str) -> int:
         conn.commit()
         return 200 if resp == 1 else 400
     except pymysql.MySQLError as e:
-        print(f"Database error: {e}")
+        LOG.error(f"Database error: {e}")
         return {"status": 500, "message": "Database error"}
     
 def get_all_accounts():
@@ -121,7 +124,7 @@ def get_all_accounts():
         return formatted_accounts
         
     except pymysql.MySQLError as e:
-        print(f"Database error: {e}")
+        LOG.error(f"Database error: {e}")
         return {"error": "Database error"}
     finally:
         cur.close()
@@ -159,7 +162,7 @@ def get_all_transactions():
         return formatted_transactions
         
     except pymysql.MySQLError as e:
-        print(f"Database error: {e}")
+        LOG.error(f"Database error: {e}")
         return {"error": "Database error"}
     finally:
         cur.close()

@@ -1,6 +1,9 @@
-import database
+import app.core.database as database
 import jwt
-from constants import ACCESS_TOKEN_EXPIRATION_MINUTES, REFRESH_TOKEN_EXPIRATION_DAYS, SECRET_KEY, ALGORITHM
+
+from app.core.logger import LOG
+from app.core.constants import ACCESS_TOKEN_EXPIRATION_MINUTES, REFRESH_TOKEN_EXPIRATION_DAYS, SECRET_KEY, ALGORITHM
+
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, Request
@@ -21,7 +24,7 @@ def create_token(data: dict, type: str) -> str:
         return encoded_jwt
 
     except Exception as e:
-        print("Error creating access token:", str(e))
+        LOG.error("Error creating access token:", str(e))
         raise HTTPException(status_code=500, detail="Failed to generate access token")
     
 
@@ -39,7 +42,7 @@ def verify_refresh_token(old_token: str, user_id: str) -> str:
         return {"access_token": new_access_token, "refresh_token": new_refresh_token}
     
     except Exception as e:
-        print(e)
+        LOG.error(e)
 
 def verify_access_token(token: str) -> dict:
     try:
@@ -49,9 +52,6 @@ def verify_access_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    
-from fastapi import HTTPException, Request
-from auth import verify_access_token
 
 def authenticated_user(request: Request) -> dict:
     access_token = request.cookies.get("access_token")
@@ -88,4 +88,4 @@ def validate(userObject: object) -> list:
         else:
             return [False, '']
     except Exception as e:
-        print(e)
+        LOG.error(e)

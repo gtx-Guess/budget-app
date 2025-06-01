@@ -1,7 +1,10 @@
-from pyairtable import Api as pyairtableapiclient
-from constants import AIRTABLE_ACCESS_TOKEN, AIRTABLE_ACCOUNTS, AIRTABLE_TRANSACTIONS, AIRTABLE_DB_ID
-from datetime import datetime
 import pytz
+
+from app.core.logger import LOG
+from app.core.constants import AIRTABLE_ACCESS_TOKEN, AIRTABLE_ACCOUNTS, AIRTABLE_TRANSACTIONS, AIRTABLE_DB_ID
+
+from pyairtable import Api as pyairtableapiclient
+from datetime import datetime
 from typing import Dict, List, Union, Any
 
 AIRTABLE_API = pyairtableapiclient(AIRTABLE_ACCESS_TOKEN)
