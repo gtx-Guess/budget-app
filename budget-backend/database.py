@@ -1,163 +1,165 @@
-import requests
-import json
 import pymysql
-from constants import DB_BASE_URL, SUPA_ACCESS_TOKEN, IS_LOCAL, LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
+from constants import LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
 from schemas import User
 
-HEADERS = {
-    "apikey": SUPA_ACCESS_TOKEN,
-    "Authorization": f"Bearer {SUPA_ACCESS_TOKEN}",
-    "Content-Type": "application/json",
-    "Prefer": "return=representation"
-}
+print("Setting up connection to local db")
 
-if IS_LOCAL:
-    print("Running locally, setting up connection to local db")
-    try:
-        connection = pymysql.connect(
-            host=LOCAL_DB_HOST,
-            user=LOCAL_DB_USER,
-            password=LOCAL_DB_PASS,
-            database=LOCAL_DB
-        )
-        print(f"Connection successful to `{LOCAL_DB}`")
+connection = None
+cursor = None
 
-        # Create a cursor object
-        cursor = connection.cursor()
-    except pymysql.MySQLError as e:
-        print(f"Error: {e}")
+def get_db_connection():
+    global connection, cursor
+    if connection is None or not connection.open:
+        try:
+            connection = pymysql.connect(
+                host=LOCAL_DB_HOST,
+                user=LOCAL_DB_USER,
+                password=LOCAL_DB_PASS,
+                database=LOCAL_DB
+            )
+            cursor = connection.cursor()
+            print(f"Database connected successfully to `{LOCAL_DB}`")
+        except pymysql.MySQLError as e:
+            print(f"Failed to connect to database: {e}")
+            return None, None
+    return connection, cursor
 
 def get_refresh_token(user_id: str) -> str:
-    if IS_LOCAL:
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
         query = """
             SELECT `refresh_token` FROM `budget-app-user` WHERE id = %s
         """
-        cursor.execute(query, user_id)
-        results = cursor.fetchone()
-        return results[0]
-    else:
-        url = f"{DB_BASE_URL}?id=eq.{user_id}&select=refresh_token"
-        try:
-            resp = requests.get(url, headers=HEADERS)
-            if resp.status_code in [200, 201]:
-                return resp.json()
-            else:
-                return {"error": f"Failed to get refresh token for user_id: {user_id} - {resp.text}"}
-            
-        except requests.exceptions.ConnectionError:
-            print("\n\nCould not make connection to Supabase from get_refresh_token function\n\n")
-            return {"error": "Connection error"}
-
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-            return {"error": str(e)}
-
+        cur.execute(query, user_id)
+        results = cur.fetchone()
+        return results[0] if results else None
+    except pymysql.MySQLError as e:
+        print(f"Database error: {e}")
+        return {"error": "Database error"}
 
 def store_user_refresh_token(user_id: str, token: str):
-    if IS_LOCAL:
-        try:
-            query = """
-                UPDATE `budget-app-user`
-                SET `refresh_token` = %s
-                WHERE id = %s
-            """
-            resp = cursor.execute(query, (token, user_id))
-            connection.commit()
-            if resp == 1:
-                return 200
-            else:
-                return {"error": f"Failed to update row with refresh token for id: {user_id}"}
-        except pymysql.MySQLError as e:
-            print(f"Database error: {e}")
-            return 500
-    else:
-        url = f"{DB_BASE_URL}?id=eq.{user_id}"
-        data = {"refresh_token": token}
-        try:
-            resp = requests.patch(url, json=data, headers=HEADERS)
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        query = """
+            UPDATE `budget-app-user`
+            SET `refresh_token` = %s
+            WHERE id = %s
+        """
+        resp = cur.execute(query, (token, user_id))
+        conn.commit()
+        return 200 if resp == 1 else {"error": f"Failed to update row with refresh token for id: {user_id}"}
+    except pymysql.MySQLError as e:
+        print(f"Database error: {e}")
+        return {"error": "Database error"}
 
-            if resp.status_code in [200, 201]:
-                return 200
-            else:
-                return {"error": f"Failed to insert data: {resp.status_code} - {resp.text}"}
+def get_pwd_hash_from_db_by_user(userObject: object) -> dict:
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        query = """
+            SELECT password, id FROM `budget-app-user` WHERE `user_name` = %s
+        """
+        cur.execute(query, userObject.user)
+        results = cur.fetchone()
+        return {"password": results[0], "id": results[1]} if results else None
+    except pymysql.MySQLError as e:
+        print(f"Database error: {e}")
+        return {"error": "Database error"}
 
-        except requests.exceptions.ConnectionError:
-            print("\n\nCould not make connection to Supabase from store_user_refresh_token function\n\n")
-            return {"error": "Connection error"}
-
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-            return {"error": str(e)}
-
-def get_pwd_hash_from_db_by_user(userObject: object) -> json:
-    if IS_LOCAL:
-        try:
-            query = """
-                SELECT password, id FROM `budget-app-user` WHERE `user_name` = %s
-            """
-            resp = cursor.execute(query, userObject.user)
-            results = cursor.fetchone()
-            return {"password": results[0], "id": results[1]}
-        except pymysql.MySQLError as e:
-            print(f"Database error: {e}")
-            return 500
-    else:
-        url = f"{DB_BASE_URL}?user_name=eq.{userObject.user}"
-        try:
-            resp = requests.get(url, headers=HEADERS)
-
-            if resp.status_code == 200:
-                return resp.json()[0]
-            elif resp.stauts_code == 401:
-                return "Unauthorized request: 401"
-            else:
-                return f"Idk figure it out: {resp.status_code}"
-            
-        except Exception as e:
-            if type(e) == requests.exceptions.ConnectionError:
-                print("\n\nCould not make connection to supabase from check_pwd func\n\n")
-                return 500
+def create_user(user: User, hashed_pwd: str) -> int:
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"status": 500, "message": "Database connection failed"}
+    
+    try:
+        query = """
+            INSERT INTO `budget-app-user` (`user_name`, `email_address`, `password`) VALUES (%s, %s, %s)
+        """
+        resp = cur.execute(query, (user.user_name, user.email_address, hashed_pwd))
+        conn.commit()
+        return 200 if resp == 1 else 400
+    except pymysql.MySQLError as e:
+        print(f"Database error: {e}")
+        return {"status": 500, "message": "Database error"}
+    
+def get_all_accounts():
+    """Get all accounts from local database"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        cur = conn.cursor(pymysql.cursors.DictCursor)
         
-def create_user(user: User, hashed_pwd: str) -> json:
-    data = {
-        "user_name": user.user_name,
-        "email_address": user.email_address,
-        "password": hashed_pwd
-    }
-
-    if IS_LOCAL:
-
-        try:
-            query = """
-                INSERT INTO `budget-app-user` (`user_name`, `email_address`, `password`) VALUES (%s, %s, %s)
-            """
-            resp = cursor.execute(query, (data["user_name"], data["email_address"], data["password"]))
-
-            connection.commit()
-            if resp == 1:
-                return 200
-            else:
-                return 400
-
-        except pymysql.MySQLError as e:
-            print(f"Database error: {e}")
-            return {"status": 500, "message": "Database error"}
+        query = """
+            SELECT id, airtable_id, institution, usd, last_successful_update, 
+                   created_at, updated_at 
+            FROM accounts 
+            ORDER BY institution
+        """
+        cur.execute(query)
+        accounts = cur.fetchall()
+        formatted_accounts = []
+        for account in accounts:
+            formatted_accounts.append({
+                "id": account["airtable_id"],
+                "fields": {
+                    "Institution": account["institution"],
+                    "USD": float(account["usd"]) if account["usd"] else 0,
+                    "Last Successful Update": account["last_successful_update"].strftime('%B %d at %H:%M') if account["last_successful_update"] else None
+                }
+            })
         
-    else:
-        url = DB_BASE_URL
-
-        try:
-            resp = requests.post(url, json=data, headers=HEADERS)
-
-            if resp.status_code in [200, 201]:
-                return 200
-            else:
-                return {"error": f"Failed to insert data: {resp.status_code} - {resp.text}"}
-            
-        except requests.exceptions.ConnectionError:
-            print("\n\nCould not make connection to Supabase from create_user func\n\n")
-            return {"error": "Connection error"}
+        return formatted_accounts
         
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-            return {"error": str(e)}
+    except pymysql.MySQLError as e:
+        print(f"Database error: {e}")
+        return {"error": "Database error"}
+    finally:
+        cur.close()
+
+def get_all_transactions():
+    """Get all transactions from local database"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        
+        query = """
+            SELECT id, airtable_id, name, usd, date, vendor, notes, 
+                   created_at, updated_at 
+            FROM transactions 
+            ORDER BY date DESC
+        """
+        cur.execute(query)
+        transactions = cur.fetchall()
+        formatted_transactions = []
+        for transaction in transactions:
+            formatted_transactions.append({
+                "id": transaction["airtable_id"],
+                "fields": {
+                    "Name": transaction["name"],
+                    "USD": float(transaction["usd"]) if transaction["usd"] else 0,
+                    "Date": transaction["date"].strftime('%Y-%m-%d') if transaction["date"] else None,
+                    "Vendor": transaction["vendor"],
+                    "Notes": transaction["notes"]
+                }
+            })
+        
+        return formatted_transactions
+        
+    except pymysql.MySQLError as e:
+        print(f"Database error: {e}")
+        return {"error": "Database error"}
+    finally:
+        cur.close()

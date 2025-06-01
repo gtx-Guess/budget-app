@@ -1,0 +1,57 @@
+services:
+  frontend:
+    build: ./budget-vue
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./budget-vue:/app
+      - /app/node_modules
+    environment:
+      - VITE_BACKEND_URL=http://localhost:8000
+
+  backend:
+    build: ./budget-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./budget-backend:/app
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - LOCAL_DB_HOST=database
+      - LOCAL_DB_USER=devuser
+      - LOCAL_DB_PASS=devpassword
+      - LOCAL_DB=budget-app
+    restart: unless-stopped
+
+  database:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: budget-app
+      MYSQL_USER: devuser
+      MYSQL_PASSWORD: devpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./budget-backend/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "devuser", "-pdevpassword"]
+      timeout: 20s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: database
+      PMA_USER: devuser
+      PMA_PASSWORD: devpassword
+    depends_on:
+      - database
+
+volumes:
+  mysql_data:

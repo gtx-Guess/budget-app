@@ -37,7 +37,7 @@ const { setAccounts } = localStore;
 
 const buttonClicked = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/api/get_airtable_data/accounts`);
+        const response = await axios.get(`${BASE_URL}/api/get_local_accounts`);
         setAccounts({ data: response.data });
     } catch (error) {
         console.error("Error fetching accounts:", error);

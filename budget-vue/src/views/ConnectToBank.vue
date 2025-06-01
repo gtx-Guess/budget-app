@@ -1,6 +1,6 @@
 <template>
     <div>
-        <button :disabled="ready" @click="connectBank">
+        <button>
             Connect a bank account
         </button>
     </div>
@@ -8,50 +8,8 @@
 
 <script lang="ts" setup>
 import axios from 'axios';
-import { usePlaidLinkComposable } from '@/composables/usePlaidLinkComposable';
-import { PlaidUser } from "@/types/aliases";
-
-const { linkToken, ready, setLinkToken, openPlaidLink } = usePlaidLinkComposable();
-
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
-const PRODUCTS = import.meta.env.VITE_PLAID_PRODUCTS.split(",");
 
-const user = {
-    id: "tigran-2204",
-};
-
-async function fetchLinkToken(user: PlaidUser) {
-    try {
-        const response = await axios.post(`${BASE_URL}/api/create_link_token`, {
-            client_name: "Tigrans Budget App",
-            language: "en",
-            country_codes: ["US"],
-            user: { client_user_id: user.id },
-            products: PRODUCTS,
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-
-        setLinkToken(response.data.link_token); // Use composable to set the token
-        console.log("Fetched Link Token:", linkToken.value);
-    } catch (error) {
-        console.error("Error fetching link token:", error);
-    }
-}
-
-async function connectBank() {
-    if (!ready.value) {
-        console.log("Fetching link token...");
-        await fetchLinkToken(user);
-        if (!ready.value) {
-            console.error("Failed to fetch link token");
-            return;
-        }
-    }
-    openPlaidLink();
-}
 </script>
 
 <style scoped>
