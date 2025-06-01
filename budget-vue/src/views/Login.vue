@@ -18,14 +18,14 @@
 </template>
 
 <script lang="ts" setup>
+import { handleMessage, message, showMessage } from '../utils/utils';
 import { RouterLink, useRouter } from 'vue-router';
 import { ref } from 'vue';
-import axios from 'axios';
-import { handleMessage, message, showMessage } from '../utils/utils';
-import AlertBubble from '@/components/AlertBubble.vue';
-axios.defaults.withCredentials = true;
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+import AlertBubble from '@/components/AlertBubble.vue';
+import axios from 'axios';
+
+
 
 const userName = ref('');
 const password = ref('');
@@ -35,7 +35,7 @@ const route = useRouter();
 const login = async () => {
     if(userName.value && password.value){
         try {
-            await axios.post(`${BASE_URL}/api/login`, {
+            await axios.post(`/api/login`, {
                 'user': userName.value,
                 'password': password.value
             }, {

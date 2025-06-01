@@ -20,12 +20,9 @@
 <script lang="ts" setup>
 import { RouterLink } from 'vue-router';
 import axios from 'axios';
-axios.defaults.withCredentials = true;
-
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 const logout = async () => {
-    await axios.post(`${BASE_URL}/api/logout`, {}, {
+    await axios.post(`/api/logout`, {}, {
         headers: {
             'Content-Type': 'application/json',
         },

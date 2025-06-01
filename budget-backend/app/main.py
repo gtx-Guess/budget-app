@@ -176,7 +176,7 @@ async def create_user_with_credentials(user: User) -> JSONResponse:
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/manual_sync")
-async def manual_sync():
+async def manual_sync(status: dict = Depends(auth.authenticated_user)):
     """Trigger immediate sync from frontend"""
     try:
         result = await sync_service.sync_all_data()
@@ -185,7 +185,7 @@ async def manual_sync():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/sync_status")
-async def get_sync_status():
+async def get_sync_status(status: dict = Depends(auth.authenticated_user)):
     """Return sync status and last sync time"""
     try:
         return JSONResponse(status_code=200, content={
@@ -196,7 +196,7 @@ async def get_sync_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get_local_accounts")
-async def get_local_accounts():
+async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
     """Get accounts from local database"""
     try:
         accounts = database.get_all_accounts()
@@ -207,7 +207,7 @@ async def get_local_accounts():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get_local_transactions")
-async def get_local_transactions():
+async def get_local_transactions(status: dict = Depends(auth.authenticated_user)):
     """Get transactions from local database"""
     try:
         transactions = database.get_all_transactions()
