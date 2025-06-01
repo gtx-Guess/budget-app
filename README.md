@@ -42,11 +42,6 @@ The app automatically manages Airtable's free tier 1,000 record limit by:
 - **External APIs**: Fintable, Airtable
 - **Development**: Docker, Docker Compose
 
-## Cost Structure
-- **Fintable**: $84/year (personal plan)
-- **Airtable**: Free tier with smart cleanup management
-- **Infrastructure**: Local development, no cloud costs
-
 ## Getting Started
 1. Clone the repository
 2. Set up environment variables:
