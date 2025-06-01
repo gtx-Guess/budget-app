@@ -49,7 +49,7 @@ const createAccount = async () => {
     };
 
     try {
-        const resp = await axios.post(`${BASE_URL}/create_user`, user, {
+        const resp = await axios.post(`${BASE_URL}/api/create_user`, user, {
             headers: {
                 'Content-Type': 'application/json',
             },

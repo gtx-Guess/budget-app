@@ -58,13 +58,13 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresAuth) {
         try {
-            const resp = await axios.post(`${BASE_URL}/authenticated`);
+            const resp = await axios.post(`${BASE_URL}/api/authenticated`);
             const authApiResponse = resp.data;
             if (authApiResponse.status === 200) {
                 next();
             } else {
                 try {
-                    const refreshApiResp = await axios.post(`${BASE_URL}/refresh_token`);
+                    const refreshApiResp = await axios.post(`${BASE_URL}/api/refresh_token`);
                     if(refreshApiResp.status === 200){
                         next();
                     }else{

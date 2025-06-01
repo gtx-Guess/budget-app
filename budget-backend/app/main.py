@@ -39,31 +39,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/api/manual_sync")
-async def manual_sync():
-    """Trigger immediate sync from frontend"""
-    try:
-        result = await sync_service.sync_all_data()
-        return JSONResponse(status_code=200, content=result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/sync_status")
-async def get_sync_status():
-    """Return sync status and last sync time"""
-    try:
-        return JSONResponse(status_code=200, content={
-            "last_sync": sync_service.last_sync.isoformat() if sync_service.last_sync else None,
-            "is_running": sync_service.is_running
-        })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/authenticated")
+@app.post("/api/authenticated")
 async def authenticate_user(status: dict = Depends(auth.authenticated_user)) -> JSONResponse:
     return status
 
-@app.post("/refresh_token")
+@app.post("/api/refresh_token")
 async def generate_new_tokens_using_refresh_token(request: Request, response: Response) -> JSONResponse:
     old_refresh_token = request.cookies.get("refresh_token")
     user_id = request.cookies.get("user_id")
@@ -104,7 +84,7 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/logout")
+@app.post("/api/logout")
 async def logout(response: Response) -> JSONResponse:
     # Create the response object
     response = JSONResponse(
@@ -134,8 +114,7 @@ async def logout(response: Response) -> JSONResponse:
     
     return response
 
-
-@app.post("/login")
+@app.post("/api/login")
 async def login_user_with_credentials(userObject: LoginDetails, response: Response) -> JSONResponse:
     try:
         is_valid_user, user_id = auth.validate(userObject)
@@ -187,12 +166,32 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post('/create_user')
+@app.post('/api/create_user')
 async def create_user_with_credentials(user: User) -> JSONResponse:
     try:
         response = database.create_user(user, auth.hash_pwd(user.password))
         if response == 200:
             return JSONResponse(status_code=200, content={"message": "User created successfully!"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/manual_sync")
+async def manual_sync():
+    """Trigger immediate sync from frontend"""
+    try:
+        result = await sync_service.sync_all_data()
+        return JSONResponse(status_code=200, content=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sync_status")
+async def get_sync_status():
+    """Return sync status and last sync time"""
+    try:
+        return JSONResponse(status_code=200, content={
+            "last_sync": sync_service.last_sync.isoformat() if sync_service.last_sync else None,
+            "is_running": sync_service.is_running
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -218,4 +217,4 @@ async def get_local_transactions():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# python -m uvicorn uvicorn app.main:app --reload
+# python -m uvicorn app.main:app --reload

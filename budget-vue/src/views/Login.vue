@@ -35,7 +35,7 @@ const route = useRouter();
 const login = async () => {
     if(userName.value && password.value){
         try {
-            await axios.post(`${BASE_URL}/login`, {
+            await axios.post(`${BASE_URL}/api/login`, {
                 'user': userName.value,
                 'password': password.value
             }, {
