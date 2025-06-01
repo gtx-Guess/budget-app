@@ -30,8 +30,8 @@ def create_token(data: dict, type: str) -> str:
 
 def verify_refresh_token(old_token: str, user_id: str) -> str:
     try:
-        storedTokenObject = database.get_refresh_token(user_id)
-        if old_token != storedTokenObject[0].get('refresh_token'):
+        storedToken = database.get_refresh_token(user_id)
+        if old_token != storedToken:
             return 401
 
         user_data = {"sub": user_id}
