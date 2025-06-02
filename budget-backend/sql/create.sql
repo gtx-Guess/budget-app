@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Sync log table
+-- Sync Log table
 CREATE TABLE IF NOT EXISTS sync_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sync_type VARCHAR(50) NOT NULL,
@@ -41,4 +41,13 @@ CREATE TABLE IF NOT EXISTS sync_log (
     records_synced INT DEFAULT 0,
     status VARCHAR(20) DEFAULT 'running',
     error_message TEXT
+);
+
+-- Category Index table
+CREATE TABLE IF NOT EXISTS category_index (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    vendor VARCHAR(255) UNIQUE NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

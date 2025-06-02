@@ -216,5 +216,11 @@ async def get_local_transactions(status: dict = Depends(auth.authenticated_user)
         return transactions
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/get_vendor_categories")
+async def get_vendor_categories(status: dict = Depends(auth.authenticated_user)):
+    """Get vendor categories list from VendorCategories class"""
+    vendor_categories = VendorCategories.get_all()
+    return vendor_categories
 
 # python -m uvicorn app.main:app --reload

@@ -1,16 +1,24 @@
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional
+from enum import Enum
 
-class PublicTokenRequest(BaseModel):
-    public_token: str
-
-class LinkTokenRequest(BaseModel):
-    user: dict
-    client_name: str
-    products: List[str]
-    country_codes: List[str]
-    language: str
+class VendorCategories(Enum):
+    GROCERIES = "Groceries"
+    RESTAURANTS = "Restaurants"
+    SHOPPING = "Shopping"
+    UTILITIES = "Utilities"
+    DIGITAL_PURCHASE = "Digital Purchase"
+    SUBSCRIPTIONS = "Subscriptions"
+    CREDIT_CARDS = "Credit Cards"
+    AUTO = "Auto"
+    MISC = "Misc"
+    BALANCE_TRANSFERS = "Balance Transfers"
+    
+    @classmethod
+    def get_all(cls):
+        """Get all the categories from the class in a list"""
+        return [category.value for category in cls]
 
 class TransactionsRequest(BaseModel):
     access_token: str

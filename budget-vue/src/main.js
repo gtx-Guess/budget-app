@@ -1,9 +1,10 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { initializeApp } from '@/utils/appInit'
 import App from '@/App.vue'
 import router from '@/router'
-import '@/styles.css'
 import axios from 'axios'
+import '@/styles.css'
 
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 axios.defaults.withCredentials = true;
@@ -31,5 +32,6 @@ axios.interceptors.response.use(
 );
 
 const pinia = createPinia();
-
-createApp(App).use(pinia).use(router).mount("#app");
+const app = createApp(App).use(pinia).use(router);
+await initializeApp();
+app.mount("#app");

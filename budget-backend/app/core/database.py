@@ -139,8 +139,7 @@ def get_all_transactions():
         cur = conn.cursor(pymysql.cursors.DictCursor)
         
         query = """
-            SELECT id, airtable_id, name, usd, date, vendor, notes, 
-                   created_at, updated_at 
+            SELECT airtable_id, name, usd, date, vendor, notes
             FROM transactions 
             ORDER BY date DESC
         """
