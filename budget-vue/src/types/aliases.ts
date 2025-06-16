@@ -10,6 +10,7 @@ interface TransactionFields {
     "Date": string;
     "Vendor": string;
     "Name": string;
+    "Account_ID": string;
 }
 interface Transaction {
     id: string;
@@ -20,6 +21,7 @@ interface AccountFields {
     "USD": number;
     "Institution": string;
     "Last Successful Update": string;
+    "Account_ID": string;
 }
 interface Account {
     id: string;

@@ -204,12 +204,13 @@ class AirtableSyncService:
                 parsed_date = None
         
         query = """
-            INSERT INTO accounts (airtable_id, institution, usd, last_successful_update)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO accounts (airtable_id, institution, usd, last_successful_update, plaid_account_id)
+            VALUES (%s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             institution = VALUES(institution),
             usd = VALUES(usd),
             last_successful_update = VALUES(last_successful_update),
+            plaid_account_id = VALUES(plaid_account_id),
             updated_at = CURRENT_TIMESTAMP
         """
         
@@ -218,7 +219,8 @@ class AirtableSyncService:
                 record['id'],
                 fields.get('Institution'),
                 fields.get('USD'),
-                parsed_date
+                parsed_date,
+                fields.get('Plaid Account ID')
             ))
             
             return cursor.rowcount
@@ -232,15 +234,16 @@ class AirtableSyncService:
         fields = record.get('fields', {})
         
         query = """
-            INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes, account_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             name = VALUES(name),
             usd = VALUES(usd),
             date = VALUES(date),
             vendor = VALUES(vendor),
             notes = VALUES(notes),
-            updated_at = CURRENT_TIMESTAMP
+            updated_at = CURRENT_TIMESTAMP,
+            account_id = VALUES(account_id)
         """
         
         cursor.execute(query, (
@@ -249,7 +252,8 @@ class AirtableSyncService:
             fields.get('USD'),
             fields.get('Date'),
             fields.get('Vendor'),
-            fields.get('Notes')
+            fields.get('Notes'),
+            fields.get('Account ID')
         ))
         
         return cursor.rowcount

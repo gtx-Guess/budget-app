@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     usd DECIMAL(10, 2),
     last_successful_update DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    plaid_account_id VARCHAR(255) UNIQUE
 );
 
 -- Transactions table  
@@ -29,7 +30,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     vendor VARCHAR(255),
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    account_id VARCHAR(255),
+    FOREIGN KEY (account_id) REFERENCES accounts(plaid_account_id)
 );
 
 -- Sync Log table

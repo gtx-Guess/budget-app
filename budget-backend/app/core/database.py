@@ -104,7 +104,7 @@ def get_all_accounts():
         
         query = """
             SELECT id, airtable_id, institution, usd, last_successful_update, 
-                   created_at, updated_at 
+                   created_at, updated_at, plaid_account_id
             FROM accounts 
             ORDER BY institution
         """
@@ -117,7 +117,8 @@ def get_all_accounts():
                 "fields": {
                     "Institution": account["institution"],
                     "USD": float(account["usd"]) if account["usd"] else 0,
-                    "Last Successful Update": account["last_successful_update"].strftime('%B %d at %H:%M') if account["last_successful_update"] else None
+                    "Last Successful Update": account["last_successful_update"].strftime('%B %d at %H:%M') if account["last_successful_update"] else None,
+                    "Account_ID": account["plaid_account_id"]
                 }
             })
         
@@ -139,7 +140,7 @@ def get_all_transactions():
         cur = conn.cursor(pymysql.cursors.DictCursor)
         
         query = """
-            SELECT airtable_id, name, usd, date, vendor, notes
+            SELECT airtable_id, name, usd, date, vendor, notes, account_id
             FROM transactions 
             ORDER BY date DESC
         """
@@ -154,7 +155,8 @@ def get_all_transactions():
                     "USD": float(transaction["usd"]) if transaction["usd"] else 0,
                     "Date": transaction["date"].strftime('%Y-%m-%d') if transaction["date"] else None,
                     "Vendor": transaction["vendor"],
-                    "Notes": transaction["notes"]
+                    "Notes": transaction["notes"],
+                    "Account_ID": transaction["account_id"]
                 }
             })
         
