@@ -1,7 +1,9 @@
-.base-colors{
-    background: rgb(115, 253, 216); /* this is the color of the navbar */
+.base-margins-width {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
 }
-
 /* Apply the background to html and body */
 html,
 body {
@@ -9,9 +11,10 @@ body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    background: linear-gradient(45deg, #ff6ec4, #7873f5, #2ec4b6);
+    background-color: rgb(248 250 247);
+    /* background: linear-gradient(45deg, #ff6ec4, #7873f5, #2ec4b6);
     background-size: 200% 200%;
-    animation: gradientAnimation 10s ease infinite;
+    animation: gradientAnimation 10s ease infinite; */
 }
 
 /* Keyframes for the gradient animation */
@@ -25,4 +28,12 @@ body {
     100% {
         background-position: 0% 50%;
     }
+}
+
+.text-matcha-400 {
+    color: rgb(107 155 79)
+};
+
+.border-matcha {
+    background: rgb(225 233 219)
 }
