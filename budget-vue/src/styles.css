@@ -180,6 +180,7 @@ body {
     --border-light: rgba(107, 155, 79, 0.1);
     --hover-bg: rgba(107, 155, 79, 0.02);
     --shadow: rgba(0, 0, 0, 0.1);
+    --bg-tertiary-ov: rgb(225 233 219);
 }
 
 html.dark {

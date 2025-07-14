@@ -324,12 +324,24 @@ const formatDate = (dateStr: string) => {
     color: rgb(107 155 79);
     font-size: 14px;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .account-select:focus {
     outline: none;
     border-color: rgb(107 155 79);
     box-shadow: 0 0 0 3px rgba(107, 155, 79, 0.1);
+}
+
+html.dark .account-select {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: rgb(139, 185, 111);
+}
+
+html.dark .account-select:focus {
+    border-color: rgb(139, 185, 111);
+    box-shadow: 0 0 0 3px rgba(139, 185, 111, 0.1);
 }
 
 .transactions-container {
