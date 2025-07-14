@@ -1,5 +1,8 @@
 <template>
-    <!-- <router-link to="/">Home</router-link> -->
+    <section style="width: 100%; display: flex; justify-content: center; margin-top: 50px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line></svg>
+        <span style="font-weight: bold; font-size: 25pt;">Master of Coin</span>
+    </section>
     <main class="login-main">
         <AlertBubble :alertText="message" :visible="showMessage" />
         <div class="outer-box">
@@ -41,11 +44,11 @@ const login = async () => {
                     'Content-Type': 'application/json',
                 },
             });
-            handleMessage('Logging in!', route, '/');
+            handleMessage('Summoning your ledger ...', route, '/');
             await loadUserData();
         } catch (error) {
             console.log(error);
-            handleMessage('Login Unsuccessful, user/password combo failed');
+            handleMessage('The Master of Whisperers reports false credentials.');
         }
     }else{
         handleMessage('User and password have to be included!');
@@ -63,7 +66,7 @@ const login = async () => {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    margin-top: 150px;
+    margin-top: 80px;
     width: 100%;
     min-height: 100vh;
     background: var(--bg-primary);

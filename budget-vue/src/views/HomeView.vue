@@ -8,7 +8,7 @@
         </section>
         <section class="dashboard-header flex justify-between items-center">
             <h2 class="text-matcha-400 font-semibold">Dashboard</h2>
-            <button @click="buttonClicked" class="sync-button bg-matcha-400 text-white rounded-sm cursor-pointer transition-opacity hover-opacity">Sync Accounts</button>
+            <button @click="buttonClicked" class="sync-button bg-matcha-400 text-white rounded-sm cursor-pointer transition-opacity hover-opacity">Summon Accounts</button>
         </section>
         <section class="dashboard-views-section">
             <div class="dashboard-views-controller flex flex-row justify-around bg-matcha-gray text-matcha-400 rounded-md">
@@ -19,10 +19,10 @@
                     Overview
                 </div>
                 <div 
-                    @click="setActiveTab('Quick Analysis')" 
-                    :class="{ 'active-controller': activeTab === 'Quick Analysis' }"
+                    @click="setActiveTab('Quick Council')" 
+                    :class="{ 'active-controller': activeTab === 'Quick Council' }"
                 >
-                    Quick Analysis
+                    Quick Council
                 </div>
                 <div 
                     @click="setActiveTab('Recent Activity *')" 
@@ -50,13 +50,13 @@
                 </div>
                 </section>
             </div>
-            <!-- Quick Analysis -->
-            <div v-if="activeTab === 'Quick Analysis'" class="analysis-container">
+            <!-- Quick Council -->
+            <div v-if="activeTab === 'Quick Council'" class="analysis-container">
                 <div class="analysis-grid">
                     <div class="account-picker bg-matcha-light rounded-lg">
                         <h3 class="text-matcha-400 font-semibold">Pick your account</h3>
                         <p class="account-explainer text-matcha-700">
-                            Pick an account from the dropdown to see the last 5 transactions for that specific account.
+                            Pick an account from the dropdown to summon the last 5 transactions for that specific account.
                         </p>
                         <select 
                             v-model="selectedAccountId" 
@@ -73,7 +73,7 @@
                             </option>
                         </select>
                         
-                        <!-- Quick Analysis Charts -->
+                        <!-- Quick Council Charts -->
                         <div v-if="selectedAccountId" class="quick-analysis-charts">
                             <div v-if="isLoadingMetrics" class="loading-state">
                                 <div class="loading-spinner"></div>
@@ -156,12 +156,12 @@
                         </div>
                         
                         <div v-else class="select-account-hint text-matcha-700 text-center">
-                            Select an account above to see quick analysis insights
+                            Select an account above to see Quick Council insights
                         </div>
                     </div>
                     
                     <div class="transactions-display bg-matcha-light rounded-lg">
-                        <h3 class="text-matcha-400 font-semibold">5 Recent Transactions for {{ selectedAccount || "N/A" }}</h3>
+                        <h3 class="text-matcha-400 font-semibold">5 Recent Transactions for {{ selectedAccount || "..." }}</h3>
                         <div v-if="selectedAccountId && getRecentTransactions().length" class="transactions-list">
                             <div 
                                 v-for="transaction in getRecentTransactions()" 
@@ -182,7 +182,7 @@
                             No recent transactions found for this account
                         </div>
                         <div v-else class="select-account-prompt text-matcha-700 text-center">
-                            Select an account to view recent transactions
+                            Select an account to summon recent transactions
                         </div>
                     </div>
                 </div>
@@ -217,7 +217,7 @@
                         </div>
                     </div>
                     <div v-else class="no-transactions text-matcha-700 text-center">
-                        No recent transactions available. Click "Sync Accounts" to load data.
+                        No recent transactions available. Click "Summon Accounts" to load data.
                     </div>
                 </div>
             </div>

@@ -2,7 +2,7 @@
     <div class="transactions flex flex-col">
         <section class="transactions-header flex justify-between items-center">
             <h2 class="text-matcha-400 font-semibold">Transactions</h2>
-            <button @click="loadData" class="sync-button bg-matcha-400 text-white rounded-sm cursor-pointer transition-opacity hover-opacity">Load Transactions</button>
+            <button @click="loadData" class="sync-button bg-matcha-400 text-white rounded-sm cursor-pointer transition-opacity hover-opacity">Summon Transactions</button>
         </section>
         
         <div v-if="accounts?.data?.length" class="content-container">
@@ -10,7 +10,7 @@
             <div class="account-selection-container bg-matcha-light rounded-lg">
                 <h3 class="text-matcha-400 font-semibold">Select Account</h3>
                 <p class="account-explainer text-matcha-700">
-                    Choose an account to view all transactions. Results are paginated with 25 transactions per page.
+                    Choose an account to summon all transactions. Results are paginated with 25 transactions per page.
                 </p>
                 <select 
                     v-model="selectedAccountId" 
@@ -111,13 +111,13 @@
             
             <!-- Select Account Prompt -->
             <div v-else class="select-account-prompt bg-matcha-light rounded-lg text-center text-matcha-700">
-                Select an account above to view transactions
+                Select an account above to summon transactions
             </div>
         </div>
         
         <!-- No Accounts Message -->
         <div v-else class="no-accounts-section bg-matcha-light text-matcha-400 rounded-lg text-center">
-            <span>No accounts loaded yet. Click "Load Transactions" to get started.</span>
+            <span>No accounts summoned yet. Click "Summon Transactions" to get started.</span>
         </div>
     </div>
 </template>

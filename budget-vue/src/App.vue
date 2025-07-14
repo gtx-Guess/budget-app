@@ -4,7 +4,7 @@
             <nav class="base-margins-width flex flex-row items-center justify-between" style="margin-top: 0 !important;">
                 <router-link to="/" class="nav-brand text-matcha-400 items-center cursor-default">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><line x1="18" x2="18" y1="20" y2="10"></line><line x1="12" x2="12" y1="20" y2="4"></line><line x1="6" x2="6" y1="20" y2="14"></line></svg>
-                    <span class="brand-text" style="font-weight: bold; font-size: 15pt;">Finance Tracker</span>
+                    <span class="brand-text" style="font-weight: bold; font-size: 15pt;">Master of Coin</span>
                 </router-link>
                 
                 <div class="nav-links flex items-center">
