@@ -29,6 +29,24 @@ class AirtableSyncService:
             LOG.error(f"Database connection error: {e}")
             return None
 
+    def is_demo_user(self, user_id: str) -> bool:
+        """Check if user is a demo user"""
+        connection = self.get_db_connection()
+        if not connection:
+            return False
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT user_name FROM `budget-app-user` WHERE id = %s", (user_id,))
+            result = cursor.fetchone()
+            return result and result[0] == 'demo'
+        except pymysql.MySQLError as e:
+            LOG.error(f"Database error checking demo user: {e}")
+            return False
+        finally:
+            if connection:
+                connection.close()
+
     async def start_background_sync(self):
         """Start the background sync task"""
         LOG.info("Starting background sync service...")
@@ -50,8 +68,17 @@ class AirtableSyncService:
             return True
         return datetime.now() - self.last_sync > timedelta(hours=24)
 
-    async def sync_all_data(self) -> Dict[str, Any]:
+    async def sync_all_data(self, user_id: str = None) -> Dict[str, Any]:
         """Sync both accounts and transactions, then cleanup if needed"""
+        # Skip Airtable sync for demo users
+        if user_id and self.is_demo_user(user_id):
+            LOG.info(f"Skipping Airtable sync for demo user: {user_id}")
+            return {
+                "accounts": {"status": "skipped", "reason": "demo_user"},
+                "transactions": {"status": "skipped", "reason": "demo_user"},
+                "cleanup": {"status": "skipped", "reason": "demo_user"}
+            }
+        
         results = {
             "accounts": await self.sync_accounts(),
             "transactions": await self.sync_transactions(),

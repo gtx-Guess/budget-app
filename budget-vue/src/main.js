@@ -5,6 +5,7 @@ import router from '@/router'
 import '@/styles.css'
 import axios from 'axios'
 import { useLocalStore } from '@/stores/localStorage'
+import { loadUserData, checkAuthentication } from '@/utils/auth'
 
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 axios.defaults.withCredentials = true
@@ -46,4 +47,22 @@ app.use(pinia).use(router);
 const store = useLocalStore();
 store.initializeDarkMode();
 
-app.mount("#app");
+// Initialize user data if authenticated (handles page refresh)
+const initializeUserData = async () => {
+  try {
+    const isAuthenticated = await checkAuthentication();
+    if (isAuthenticated) {
+      console.log('🔄 User authenticated, loading data...');
+      await loadUserData();
+    } else {
+      console.log('👤 User not authenticated');
+    }
+  } catch (error) {
+    console.log('❌ Error checking authentication:', error);
+  }
+};
+
+// Initialize user data before mounting the app
+initializeUserData().then(() => {
+  app.mount("#app");
+});
