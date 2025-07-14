@@ -197,9 +197,13 @@ async def get_sync_status(status: dict = Depends(auth.authenticated_user)):
 
 @app.get("/api/get_local_accounts")
 async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
-    """Get accounts from local database"""
+    """Get accounts from local database for authenticated user"""
     try:
-        accounts = database.get_all_accounts()
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        accounts = database.get_all_accounts(user_id)
         if isinstance(accounts, dict) and "error" in accounts:
             raise HTTPException(status_code=500, detail=accounts["error"])
         return accounts
@@ -214,6 +218,25 @@ async def get_local_transactions(status: dict = Depends(auth.authenticated_user)
         if isinstance(transactions, dict) and "error" in transactions:
             raise HTTPException(status_code=500, detail=transactions["error"])
         return transactions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_current_user")
+async def get_current_user(status: dict = Depends(auth.authenticated_user)):
+    """Get current authenticated user's details"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        user = database.get_user_by_id(user_id)
+        if isinstance(user, dict) and "error" in user:
+            raise HTTPException(status_code=500, detail=user["error"])
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        return user
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

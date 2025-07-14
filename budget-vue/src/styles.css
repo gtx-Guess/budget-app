@@ -1,9 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .base-margins-width {
     width: 95%;
     margin-left: auto;
     margin-right: auto;
     margin-top: 10px;
 }
+
+/* Global font styling */
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
 /* Apply the background to html and body */
 html,
 body {
@@ -30,10 +38,275 @@ body {
     }
 }
 
+.mgl10 {
+    margin-left: 10px;
+}
+
+/* Color Utilities */
 .text-matcha-400 {
-    color: rgb(107 155 79)
-};
+    color: rgb(107 155 79);
+}
+
+.text-matcha-600 {
+    color: rgba(107, 155, 79, 0.6);
+}
+
+.text-matcha-700 {
+    color: rgba(107, 155, 79, 0.7);
+}
+
+.bg-matcha-light {
+    background: rgb(225 233 219);
+}
+
+.bg-matcha-400 {
+    background: rgb(107 155 79);
+}
+
+.bg-matcha-gray {
+    background: rgb(239, 239, 239);
+}
+
+.bg-white {
+    background: white;
+}
 
 .border-matcha {
-    background: rgb(225 233 219)
+    background: rgb(225 233 219);
+}
+
+/* Layout Utilities */
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.flex-row {
+    flex-direction: row;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-around {
+    justify-content: space-around;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Border Radius Utilities */
+.rounded-lg {
+    border-radius: 12px;
+}
+
+.rounded-md {
+    border-radius: 10px;
+}
+
+.rounded-sm {
+    border-radius: 8px;
+}
+
+/* Transition Utilities */
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+.transition-color {
+    transition: color 0.2s ease;
+}
+
+.transition-opacity {
+    transition: opacity 0.2s ease;
+}
+
+/* Common Interactive States */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.cursor-default {
+    cursor: default;
+}
+
+.hover-opacity:hover {
+    opacity: 0.8;
+}
+
+/* Typography Utilities */
+.font-bold {
+    font-weight: bold;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+/* Flexbox Utilities */
+.flex-shrink-0 {
+    flex-shrink: 0;
+}
+
+.no-wrap {
+    white-space: nowrap;
+}
+
+/* Dark Mode Theme */
+:root {
+    /* Light theme colors (default) - preserve original styling */
+    --bg-primary: rgb(248, 250, 247);
+    --bg-secondary: #ffffff;
+    --text-primary: rgb(107, 155, 79);
+    --text-secondary: rgb(138, 138, 138);
+    --text-tertiary: rgb(168, 168, 168);
+    --border-light: rgba(107, 155, 79, 0.1);
+    --hover-bg: rgba(107, 155, 79, 0.02);
+    --shadow: rgba(0, 0, 0, 0.1);
+}
+
+html.dark {
+    /* Dark theme colors */
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --text-primary: rgb(139, 185, 111);
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #888888;
+    --border-light: rgba(139, 185, 111, 0.2);
+    --hover-bg: rgba(139, 185, 111, 0.05);
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* Apply theme colors globally */
+html, body {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode overrides for background utilities */
+html.dark .bg-matcha-light {
+    background-color: #2a3228 !important;
+}
+
+html.dark .bg-matcha-gray {
+    background-color: #374151 !important;
+}
+
+html.dark .bg-white {
+    background-color: var(--bg-secondary) !important;
+}
+
+.text-matcha-400 {
+    color: var(--text-primary) !important;
+}
+
+.text-matcha-700 {
+    color: var(--text-secondary) !important;
+}
+
+.text-matcha-600 {
+    color: var(--text-tertiary) !important;
+}
+
+/* Dark mode specific overrides */
+html.dark .bg-matcha-400 {
+    background-color: rgb(139, 185, 111) !important;
+}
+
+html.dark input, 
+html.dark select, 
+html.dark textarea {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-light);
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+    border-color: rgb(139, 185, 111);
+    box-shadow: 0 0 0 3px rgba(139, 185, 111, 0.1);
+}
+
+/* Dark mode for pagination and buttons */
+html.dark .pagination-btn,
+html.dark .page-number-btn {
+    background-color: var(--bg-secondary);
+    border-color: rgb(139, 185, 111);
+    color: rgb(139, 185, 111);
+}
+
+html.dark .pagination-btn:hover:not(.disabled),
+html.dark .page-number-btn:hover {
+    background-color: rgb(139, 185, 111);
+    color: var(--bg-secondary);
+}
+
+html.dark .page-number-btn.active {
+    background-color: rgb(139, 185, 111);
+    color: var(--bg-secondary);
+}
+
+html.dark .pagination-btn.disabled {
+    background-color: var(--bg-secondary);
+    color: var(--text-tertiary);
+    border-color: var(--border-light);
+}
+
+/* Dark mode for cards and containers */
+html.dark .transaction-card,
+html.dark .analysis-card {
+    background-color: #2a3228 !important;
+    border-left-color: rgb(139, 185, 111);
+}
+
+html.dark .account-section {
+    background-color: #2a3228 !important;
+}
+
+/* Dark mode for navigation */
+html.dark .nav-link {
+    color: var(--text-secondary);
+}
+
+html.dark .nav-link:hover,
+html.dark .router-link-active {
+    color: rgb(139, 185, 111) !important;
+}
+
+html.dark .nav-brand {
+    color: rgb(139, 185, 111) !important;
+}
+
+html.dark header {
+    background-color: var(--bg-primary);
+    border-color: var(--border-light);
+}
+
+/* Dark mode transitions */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Global content container spacing for consistency across all pages */
+.content-container {
+    margin-bottom: 60px;
 }

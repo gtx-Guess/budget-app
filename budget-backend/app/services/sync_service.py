@@ -204,21 +204,29 @@ class AirtableSyncService:
                 parsed_date = None
         
         query = """
-            INSERT INTO accounts (airtable_id, institution, usd, last_successful_update)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO accounts (airtable_id, institution, usd, last_successful_update, plaid_account_id, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             institution = VALUES(institution),
             usd = VALUES(usd),
             last_successful_update = VALUES(last_successful_update),
+            plaid_account_id = VALUES(plaid_account_id),
+            user_id = VALUES(user_id),
             updated_at = CURRENT_TIMESTAMP
         """
         
         try:
+            # For now, assign all accounts to user ID 1 (your test user)
+            # TODO: In the future, you'll want to determine user_id based on authentication
+            default_user_id = 1
+            
             cursor.execute(query, (
                 record['id'],
                 fields.get('Institution'),
                 fields.get('USD'),
-                parsed_date
+                parsed_date,
+                fields.get('Plaid Account ID'),
+                default_user_id
             ))
             
             return cursor.rowcount
@@ -232,14 +240,15 @@ class AirtableSyncService:
         fields = record.get('fields', {})
         
         query = """
-            INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes, account_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             name = VALUES(name),
             usd = VALUES(usd),
             date = VALUES(date),
             vendor = VALUES(vendor),
             notes = VALUES(notes),
+            account_id = VALUES(account_id),
             updated_at = CURRENT_TIMESTAMP
         """
         
@@ -249,7 +258,8 @@ class AirtableSyncService:
             fields.get('USD'),
             fields.get('Date'),
             fields.get('Vendor'),
-            fields.get('Notes')
+            fields.get('Notes'),
+            fields.get('Account ID')
         ))
         
         return cursor.rowcount

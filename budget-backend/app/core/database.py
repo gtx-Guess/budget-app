@@ -93,8 +93,8 @@ def create_user(user: User, hashed_pwd: str) -> int:
         LOG.error(f"Database error: {e}")
         return {"status": 500, "message": "Database error"}
     
-def get_all_accounts():
-    """Get all accounts from local database"""
+def get_all_accounts(user_id: str = None):
+    """Get all accounts from local database for a specific user"""
     conn, cur = get_db_connection()
     if cur is None:
         return {"error": "Database connection failed"}
@@ -102,13 +102,25 @@ def get_all_accounts():
     try:
         cur = conn.cursor(pymysql.cursors.DictCursor)
         
-        query = """
-            SELECT id, airtable_id, institution, usd, last_successful_update, 
-                   created_at, updated_at 
-            FROM accounts 
-            ORDER BY institution
-        """
-        cur.execute(query)
+        if user_id:
+            # Filter by user_id when provided
+            query = """
+                SELECT id, airtable_id, institution, usd, last_successful_update, 
+                       plaid_account_id, user_id, created_at, updated_at 
+                FROM accounts 
+                WHERE user_id = %s
+                ORDER BY institution
+            """
+            cur.execute(query, (user_id,))
+        else:
+            # Fallback for backward compatibility (no filtering)
+            query = """
+                SELECT id, airtable_id, institution, usd, last_successful_update, 
+                       plaid_account_id, user_id, created_at, updated_at 
+                FROM accounts 
+                ORDER BY institution
+            """
+            cur.execute(query)
         accounts = cur.fetchall()
         formatted_accounts = []
         for account in accounts:
@@ -117,7 +129,8 @@ def get_all_accounts():
                 "fields": {
                     "Institution": account["institution"],
                     "USD": float(account["usd"]) if account["usd"] else 0,
-                    "Last Successful Update": account["last_successful_update"].strftime('%B %d at %H:%M') if account["last_successful_update"] else None
+                    "Last Successful Update": account["last_successful_update"].strftime('%B %d at %H:%M') if account["last_successful_update"] else None,
+                    "Plaid Account ID": account["plaid_account_id"]
                 }
             })
         
@@ -139,7 +152,7 @@ def get_all_transactions():
         cur = conn.cursor(pymysql.cursors.DictCursor)
         
         query = """
-            SELECT id, airtable_id, name, usd, date, vendor, notes, 
+            SELECT id, airtable_id, name, usd, date, vendor, notes, account_id,
                    created_at, updated_at 
             FROM transactions 
             ORDER BY date DESC
@@ -155,7 +168,8 @@ def get_all_transactions():
                     "USD": float(transaction["usd"]) if transaction["usd"] else 0,
                     "Date": transaction["date"].strftime('%Y-%m-%d') if transaction["date"] else None,
                     "Vendor": transaction["vendor"],
-                    "Notes": transaction["notes"]
+                    "Notes": transaction["notes"],
+                    "Account ID": transaction["account_id"]
                 }
             })
         
@@ -166,3 +180,38 @@ def get_all_transactions():
         return {"error": "Database error"}
     finally:
         cur.close()
+
+def get_user_by_id(user_id: str):
+    """Get user details by user ID"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        query = """
+            SELECT id, user_name, email_address, created_at
+            FROM `budget-app-user` 
+            WHERE id = %s
+        """
+        cur.execute(query, (user_id,))
+        user = cur.fetchone()
+        
+        if user:
+            # Split user_name into first and last name if it contains a space
+            full_name = user[1] if user[1] else ""
+            name_parts = full_name.split(" ", 1)
+            
+            return {
+                "id": user[0],
+                "first_name": name_parts[0] if name_parts else "",
+                "last_name": name_parts[1] if len(name_parts) > 1 else "",
+                "email_address": user[2],
+                "user_name": user[1],
+                "created_at": user[3].isoformat() if user[3] else None
+            }
+        else:
+            return None
+            
+    except pymysql.MySQLError as e:
+        LOG.error(f"Database error: {e}")
+        return {"error": "Database error"}

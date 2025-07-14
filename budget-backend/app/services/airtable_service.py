@@ -8,8 +8,8 @@ from datetime import datetime
 from typing import Dict, List, Union, Any
 
 AIRTABLE_API = pyairtableapiclient(AIRTABLE_ACCESS_TOKEN)
-TRANSACTION_FIELDS = ["*Name", "**Date", "**USD", "*Vendor", "*Notes"]
-ACCOUNT_FIELDS = ["**Institution", "**USD", "**Last Successful Update"]
+TRANSACTION_FIELDS = ["*Name", "**Date", "**USD", "*Vendor", "*Notes", "**Account ID"]
+ACCOUNT_FIELDS = ["**Institution", "**USD", "**Last Successful Update", "**Plaid Account ID"]
 
 REQUEST_TYPES = {
     "transactions": {

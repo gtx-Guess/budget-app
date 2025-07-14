@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "@/views/HomeView.vue";
-import ConnectToBankView from "@/views/ConnectToBank.vue";
+import Analytics from "@/views/Analytics.vue";
 import LoginView from "@/views/Login.vue";
 import CreateUserView from "@/views/CreateUser.vue";
 import ProfileView from "@/views/Profile.vue";
@@ -27,9 +27,9 @@ const routes = [
         meta: { requiresAuth: true, showNavbar: true},
     },
     {
-        path: "/connect",
+        path: "/analytics",
         name: "Bank Connection Page",
-        component: ConnectToBankView,
+        component: Analytics,
         meta: { requiresAuth: true, showNavbar: true },
     },
     {
