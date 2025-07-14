@@ -215,16 +215,15 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
 import axios from 'axios';
-import AlertBubble from '@/components/AlertBubble.vue';
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
-const { user, accounts, transactions } = storeToRefs(localStore);
-const { setUser, setAccounts, setTransactions } = localStore;
+const { accounts, transactions } = storeToRefs(localStore);
+const { setAccounts, setTransactions } = localStore;
 
 const activeTab = ref('Overview');
 const selectedAccountId = ref<string>('');
@@ -473,7 +472,6 @@ const buttonClicked = async () => {
         setAccounts({ data: accResponse.data });
         const tranResponse = await axios.get(`/api/get_local_transactions`);
         setTransactions({ data: tranResponse.data });
-        await loadUserData();
     } catch (error) {
         console.error("Error fetching accounts:", error);
         let errorMessage = 'Failed to fetch accounts';
@@ -482,34 +480,6 @@ const buttonClicked = async () => {
         }
         showAlertMessage(errorMessage);
     };
-};
-
-const loadUserData = async () => {
-    try {
-        // Load both user data and accounts in parallel
-        const [userResponse, accResponse] = await Promise.all([
-            axios.get(`/api/get_current_user`),
-            axios.get(`/api/get_local_accounts`)
-        ]);
-        
-        // Set user data from authenticated endpoint
-        setUser({
-            first_name: userResponse.data.first_name,
-            last_name: userResponse.data.last_name,
-            email_address: userResponse.data.email_address
-        });
-        
-        // Set accounts data
-        setAccounts({ data: accResponse.data });
-        
-    } catch (error) {
-        console.error("Error fetching user data:", error);
-        let errorMessage = 'Failed to fetch user data , let me retry';
-        if (axios.isAxiosError(error)) {
-            errorMessage = error.response?.data?.detail || error.message;
-        }
-        showAlertMessage(errorMessage);
-    }
 };
 </script>
 
