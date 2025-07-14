@@ -240,4 +240,71 @@ async def get_current_user(status: dict = Depends(auth.authenticated_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/update_password")
+async def update_password(
+    password_data: dict,
+    status: dict = Depends(auth.authenticated_user)
+):
+    """Update user's password"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        current_password = password_data.get("current_password")
+        new_password = password_data.get("new_password")
+        
+        if not current_password or not new_password:
+            raise HTTPException(status_code=400, detail="Both current and new passwords are required")
+        
+        # Verify current password
+        user = database.get_user_by_id(user_id, include_password=True)
+        if not user or not auth.verify_pwd(current_password, user.get("password", "")):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        
+        # Hash new password and update
+        hashed_password = auth.hash_pwd(new_password)
+        result = database.update_user_password(user_id, hashed_password)
+        
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"message": "Password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/update_email")
+async def update_email(
+    email_data: dict,
+    status: dict = Depends(auth.authenticated_user)
+):
+    """Update user's email address"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        new_email = email_data.get("new_email")
+        
+        if not new_email:
+            raise HTTPException(status_code=400, detail="New email address is required")
+        
+        # Basic email validation
+        if "@" not in new_email or "." not in new_email:
+            raise HTTPException(status_code=400, detail="Please enter a valid email address")
+        
+        # Update email
+        result = database.update_user_email(user_id, new_email)
+        
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"message": "Email updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # python -m uvicorn app.main:app --reload

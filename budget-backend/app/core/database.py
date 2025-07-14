@@ -181,18 +181,25 @@ def get_all_transactions():
     finally:
         cur.close()
 
-def get_user_by_id(user_id: str):
+def get_user_by_id(user_id: str, include_password: bool = False):
     """Get user details by user ID"""
     conn, cur = get_db_connection()
     if cur is None:
         return {"error": "Database connection failed"}
     
     try:
-        query = """
-            SELECT id, user_name, email_address, created_at
-            FROM `budget-app-user` 
-            WHERE id = %s
-        """
+        if include_password:
+            query = """
+                SELECT id, user_name, email_address, password, created_at
+                FROM `budget-app-user` 
+                WHERE id = %s
+            """
+        else:
+            query = """
+                SELECT id, user_name, email_address, created_at
+                FROM `budget-app-user` 
+                WHERE id = %s
+            """
         cur.execute(query, (user_id,))
         user = cur.fetchone()
         
@@ -201,17 +208,60 @@ def get_user_by_id(user_id: str):
             full_name = user[1] if user[1] else ""
             name_parts = full_name.split(" ", 1)
             
-            return {
+            result = {
                 "id": user[0],
                 "first_name": name_parts[0] if name_parts else "",
                 "last_name": name_parts[1] if len(name_parts) > 1 else "",
                 "email_address": user[2],
                 "user_name": user[1],
-                "created_at": user[3].isoformat() if user[3] else None
+                "created_at": user[-1].isoformat() if user[-1] else None
             }
+            
+            if include_password:
+                result["password"] = user[3]
+            
+            return result
         else:
             return None
             
+    except pymysql.MySQLError as e:
+        LOG.error(f"Database error: {e}")
+        return {"error": "Database error"}
+
+def update_user_password(user_id: str, hashed_password: str):
+    """Update user's password"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        query = """
+            UPDATE `budget-app-user`
+            SET `password` = %s
+            WHERE id = %s
+        """
+        resp = cur.execute(query, (hashed_password, user_id))
+        conn.commit()
+        return 200 if resp == 1 else {"error": f"Failed to update password for user_id: {user_id}"}
+    except pymysql.MySQLError as e:
+        LOG.error(f"Database error: {e}")
+        return {"error": "Database error"}
+
+def update_user_email(user_id: str, new_email: str):
+    """Update user's email address"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return {"error": "Database connection failed"}
+    
+    try:
+        query = """
+            UPDATE `budget-app-user`
+            SET `email_address` = %s
+            WHERE id = %s
+        """
+        resp = cur.execute(query, (new_email, user_id))
+        conn.commit()
+        return 200 if resp == 1 else {"error": f"Failed to update email for user_id: {user_id}"}
     except pymysql.MySQLError as e:
         LOG.error(f"Database error: {e}")
         return {"error": "Database error"}
