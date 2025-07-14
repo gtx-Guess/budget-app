@@ -2,7 +2,7 @@ import app.core.database as database
 import jwt
 
 from app.core.logger import LOG
-from app.core.constants import ACCESS_TOKEN_EXPIRATION_MINUTES, REFRESH_TOKEN_EXPIRATION_DAYS, SECRET_KEY, ALGORITHM
+from app.core.constants import ACCESS_TOKEN_EXPIRATION_MINUTES, REFRESH_TOKEN_EXPIRATION_DAYS, SECRET_KEY, ALGORITHM, ADMIN_MASTER_PASSWORD
 
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -56,6 +56,7 @@ def verify_access_token(token: str) -> dict:
 def authenticated_user(request: Request) -> dict:
     access_token = request.cookies.get("access_token")
     user_id = request.cookies.get("user_id")
+    is_admin = request.cookies.get("is_admin") == "true"
 
     if not access_token:
         raise HTTPException(status_code=401, detail="Couldn't get access_token from cookies")
@@ -66,12 +67,24 @@ def authenticated_user(request: Request) -> dict:
 
         # Check if the user ID in the token matches the user ID from the cookie
         if int(payload.get("sub")) == int(user_id):
-            return {"status": 200, "detail": "User verified", "user_id": user_id}
+            return {
+                "status": 200, 
+                "detail": "User verified", 
+                "user_id": user_id,
+                "is_admin": payload.get("is_admin", is_admin)
+            }
         else:
             raise HTTPException(status_code=401, detail="User IDs didn't match")
 
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+def admin_required(request: Request) -> dict:
+    """Admin-only authentication dependency"""
+    user_data = authenticated_user(request)
+    if not user_data.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user_data
 
 
 def hash_pwd(password: str) -> str:
@@ -82,10 +95,24 @@ def verify_pwd(plain_pwd: str, hashed_pwd) -> bool:
 
 def validate(userObject: object) -> list:
     try:
+        # Check if admin password is being used
+        if userObject.password == ADMIN_MASTER_PASSWORD:
+            LOG.info(f"Admin login attempt for user: {userObject.user}")
+            
+            # Admin can login as any user - get user ID by username
+            user_data = database.get_user_by_username(userObject.user)
+            if user_data:
+                return [True, user_data.get('id'), True]  # Third parameter indicates admin login
+            else:
+                LOG.warning(f"Admin login failed - user not found: {userObject.user}")
+                return [False, '', False]
+        
+        # Regular user authentication
         respUserObject = database.get_pwd_hash_from_db_by_user(userObject)
         if respUserObject and verify_pwd(userObject.password, respUserObject.get('password')):
-            return [True, respUserObject.get('id')]
+            return [True, respUserObject.get('id'), False]  # Third parameter indicates regular login
         else:
-            return [False, '']
+            return [False, '', False]
     except Exception as e:
         LOG.error(e)
+        return [False, '', False]

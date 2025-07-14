@@ -117,9 +117,11 @@ async def logout(response: Response) -> JSONResponse:
 @app.post("/api/login")
 async def login_user_with_credentials(userObject: LoginDetails, response: Response) -> JSONResponse:
     try:
-        is_valid_user, user_id = auth.validate(userObject)
+        validation_result = auth.validate(userObject)
+        is_valid_user, user_id, is_admin = validation_result[0], validation_result[1], validation_result[2] if len(validation_result) > 2 else False
+        
         if is_valid_user:
-            user_data = {"sub": user_id}
+            user_data = {"sub": user_id, "is_admin": is_admin}
             access_token = auth.create_token(user_data, "access")
             refresh_token = auth.create_token(user_data, "refresh")
 
@@ -129,7 +131,10 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
             
             response = JSONResponse(
                 status_code = 200,
-                content = {"message": "Verified!"}
+                content = {
+                    "message": "Verified!",
+                    "admin_login": is_admin
+                }
             )
             
             response.set_cookie(
@@ -159,6 +164,15 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 secure=True
             )
 
+            response.set_cookie(
+                key="is_admin",
+                value="true" if is_admin else "false",
+                httponly=True,
+                max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
+                samesite="none",
+                secure=True
+            )
+
             return response
         else:
             return JSONResponse(status_code=404, content={"message": "Could not verify user/password combination!"})
@@ -179,7 +193,11 @@ async def create_user_with_credentials(user: User) -> JSONResponse:
 async def manual_sync(status: dict = Depends(auth.authenticated_user)):
     """Trigger immediate sync from frontend"""
     try:
-        result = await sync_service.sync_all_data()
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        result = await sync_service.sync_all_data(user_id)
         return JSONResponse(status_code=200, content=result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -212,9 +230,13 @@ async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
 
 @app.get("/api/get_local_transactions")
 async def get_local_transactions(status: dict = Depends(auth.authenticated_user)):
-    """Get transactions from local database"""
+    """Get transactions from local database for authenticated user"""
     try:
-        transactions = database.get_all_transactions()
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        transactions = database.get_all_transactions(user_id)
         if isinstance(transactions, dict) and "error" in transactions:
             raise HTTPException(status_code=500, detail=transactions["error"])
         return transactions
@@ -304,6 +326,77 @@ async def update_email(
         return {"message": "Email updated successfully"}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin-only endpoints
+@app.get("/api/admin/users")
+async def get_all_users(status: dict = Depends(auth.admin_required)):
+    """Get all users (admin only)"""
+    try:
+        users = database.get_all_users_admin()
+        return JSONResponse(status_code=200, content=users)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset_password")
+async def admin_reset_password(
+    reset_data: dict,
+    status: dict = Depends(auth.admin_required)
+):
+    """Reset any user's password (admin only)"""
+    try:
+        target_user = reset_data.get("username")
+        new_password = reset_data.get("new_password")
+        
+        if not target_user or not new_password:
+            raise HTTPException(status_code=400, detail="Username and new password are required")
+        
+        # Hash the new password
+        hashed_password = auth.hash_pwd(new_password)
+        
+        # Update password in database
+        success = database.admin_update_user_password(target_user, hashed_password)
+        if success:
+            return JSONResponse(status_code=200, content={
+                "message": f"Password reset successfully for user: {target_user}"
+            })
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset_demo_account")
+async def reset_demo_account(status: dict = Depends(auth.admin_required)):
+    """Reset demo account password and regenerate data (admin only)"""
+    try:
+        # Reset demo password
+        demo_password = "demo123"
+        hashed_password = auth.hash_pwd(demo_password)
+        
+        password_reset = database.admin_update_user_password("demo", hashed_password)
+        if not password_reset:
+            raise HTTPException(status_code=404, detail="Demo user not found")
+        
+        # Regenerate demo data
+        data_reset = database.reset_demo_data()
+        
+        return JSONResponse(status_code=200, content={
+            "message": "Demo account reset successfully",
+            "new_password": demo_password,
+            "data_regenerated": data_reset
+        })
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/user_stats")
+async def get_user_stats(status: dict = Depends(auth.admin_required)):
+    """Get user statistics (admin only)"""
+    try:
+        stats = database.get_user_statistics()
+        return JSONResponse(status_code=200, content=stats)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

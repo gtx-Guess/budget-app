@@ -1,5 +1,11 @@
 <template>
     <div class="home flex flex-col">
+        <AlertBubble :alertText="message" :visible="showMessage" />
+        <section class="welcome-section">
+            <h1 class="welcome-message text-matcha-400">
+                Welcome {{ user?.first_name || 'User' }}!
+            </h1>
+        </section>
         <section class="dashboard-header flex justify-between items-center">
             <h2 class="text-matcha-400 font-semibold">Dashboard</h2>
             <button @click="buttonClicked" class="sync-button bg-matcha-400 text-white rounded-sm cursor-pointer transition-opacity hover-opacity">Sync Accounts</button>
@@ -29,7 +35,12 @@
         <div v-if="accounts?.data?.length" class="content-container">
             <!-- Overview -->
             <div v-if="activeTab === 'Overview'" class="accounts-grid">
-                <section v-for="account in accounts.data" :key="account.id" class="account-section bg-matcha-light text-matcha-400 rounded-lg">
+                <section 
+                    v-for="account in accounts.data" 
+                    :key="account.id" 
+                    @click="navigateToTransactions(account)"
+                    class="account-section bg-matcha-light text-matcha-400 rounded-lg clickable-account"
+                >
                 <div class="account-info flex flex-col">
                     <div class="account-name font-bold text-matcha-400">{{ account["fields"]["Institution"] }}</div>
                     <div class="account-details flex">
@@ -192,7 +203,12 @@
                         >
                             <div class="transaction-info">
                                 <div class="transaction-vendor font-medium text-matcha-400">{{ transaction.fields.Vendor || transaction.fields.Name }}</div>
-                                <div class="transaction-date text-matcha-700">{{ transaction.fields.Date }}</div>
+                                <div class="transaction-meta-info">
+                                    <div class="transaction-date text-matcha-700">{{ transaction.fields.Date }}</div>
+                                    <div v-if="transaction.accountInfo" class="transaction-account text-matcha-600">
+                                        • {{ transaction.accountInfo.institution }}
+                                    </div>
+                                </div>
                                 <div v-if="transaction.fields.Notes" class="transaction-notes text-matcha-600">{{ transaction.fields.Notes }}</div>
                             </div>
                             <div class="transaction-amount font-semibold" :class="transaction.fields.USD >= 0 ? 'text-green-600' : 'text-red-600'">
@@ -218,32 +234,23 @@
 import { ref } from 'vue';
 import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
+import AlertBubble from '@/components/AlertBubble.vue';
+import { handleMessage, message, showMessage } from '../utils/utils';
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
-const { accounts, transactions } = storeToRefs(localStore);
+const { accounts, transactions, user } = storeToRefs(localStore);
 const { setAccounts, setTransactions } = localStore;
+const router = useRouter();
 
 const activeTab = ref('Overview');
 const selectedAccountId = ref<string>('');
 const selectedAccount = ref<string>('');
 const isLoadingMetrics = ref(false);
 
-// Alert functionality
-const alertMessage = ref('');
-const showAlert = ref(false);
-
-
-// Show alert function
-const showAlertMessage = (message: string, duration: number = 3000) => {
-    alertMessage.value = message;
-    showAlert.value = true;
-    
-    setTimeout(() => {
-        showAlert.value = false;
-    }, duration);
-};
+// Alert functionality handled by handleMessage utility
 
 const setActiveTab = (tabName: string) => {
     activeTab.value = tabName;
@@ -452,18 +459,41 @@ const getTwoMonthsAgoTransactions = () => {
         });
 };
 
-// Get recent transactions across all accounts (last 5, newest first)
+// Get recent transactions across all accounts (last 5, newest first) with account info
 const getAllRecentTransactions = () => {
-    if (!transactions.value?.data) return [];
+    if (!transactions.value?.data || !accounts.value?.data) return [];
     
     // Sort all transactions by date (newest first) and take first 5
-    return transactions.value.data
+    const recentTransactions = transactions.value.data
         .sort((a, b) => {
             const dateA = new Date(a.fields.Date);
             const dateB = new Date(b.fields.Date);
             return dateB.getTime() - dateA.getTime(); // Newest first
         })
         .slice(0, 5); // Take first 5 (newest)
+    
+    // Enrich transactions with account information
+    return recentTransactions.map(transaction => {
+        const account = accounts.value.data.find(acc => 
+            acc.fields["Plaid Account ID"] === transaction.fields["Account ID"]
+        );
+        
+        return {
+            ...transaction,
+            accountInfo: account ? {
+                institution: account.fields.Institution,
+                id: account.fields["Plaid Account ID"]
+            } : null
+        };
+    });
+};
+
+// Navigate to transactions page with selected account
+const navigateToTransactions = (account: any) => {
+    router.push({
+        name: 'Transactions',
+        query: { accountId: account.id }
+    });
 };
 
 const buttonClicked = async () => {
@@ -478,12 +508,23 @@ const buttonClicked = async () => {
         if (axios.isAxiosError(error)) {
             errorMessage = error.response?.data?.detail || error.message;
         }
-        showAlertMessage(errorMessage);
+        handleMessage(errorMessage);
     };
 };
 </script>
 
 <style scoped>
+
+.welcome-section {
+    margin: 20px 0 10px 0;
+    text-align: center;
+}
+
+.welcome-message {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 600;
+}
 
 .dashboard-views-section {
     width: 100%;
@@ -546,6 +587,16 @@ const buttonClicked = async () => {
     padding: 20px;
 }
 
+.clickable-account {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-account:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(107, 155, 79, 0.2);
+}
+
 .account-info {
     gap: 8px;
 }
@@ -582,6 +633,14 @@ const buttonClicked = async () => {
 }
 
 @media (max-width: 768px) {
+    .welcome-message {
+        font-size: 28px;
+    }
+    
+    .dashboard-header h2 {
+        font-size: 32px;
+    }
+    
     .dashboard-views-controller {
         max-width: 95%;
         min-width: 250px;
@@ -590,6 +649,20 @@ const buttonClicked = async () => {
     .dashboard-views-controller > * {
         padding: 12px 15px;
         font-size: 15px;
+    }
+    
+    .account-name {
+        font-size: 20px;
+    }
+    
+    .account-details {
+        gap: 20px;
+        font-size: 15px;
+    }
+    
+    .sync-button {
+        padding: 10px 20px;
+        font-size: 13px;
     }
 }
 
@@ -745,8 +818,20 @@ html.dark .transaction-item {
     font-size: 14px;
 }
 
+.transaction-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .transaction-date {
     font-size: 12px;
+}
+
+.transaction-account {
+    font-size: 11px;
+    font-weight: 500;
 }
 
 .transaction-notes {
@@ -860,6 +945,21 @@ html.dark .progress-bar {
 }
 
 @media (max-width: 600px) {
+    .welcome-message {
+        font-size: 24px;
+    }
+    
+    .dashboard-header h2 {
+        font-size: 28px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+        margin: 15px 0;
+    }
+    
     .dashboard-views-controller {
         max-width: 98%;
         min-width: 200px;
@@ -871,6 +971,26 @@ html.dark .progress-bar {
     
     .accounts-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .account-section {
+        padding: 15px;
+    }
+    
+    .account-name {
+        font-size: 18px;
+    }
+    
+    .account-details {
+        gap: 15px;
+        font-size: 14px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .sync-button {
+        width: 100%;
+        text-align: center;
     }
 }
 </style>

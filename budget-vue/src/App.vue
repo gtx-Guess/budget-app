@@ -107,7 +107,7 @@ nav {
 }
 
 /* Responsive Navigation */
-@media (max-width: 779px) {
+@media (max-width: 846px) {
     .brand-text {
         font-size: 14pt !important;
     }

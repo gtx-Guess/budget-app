@@ -1,6 +1,6 @@
 <template>
     <div class="profile flex flex-col">
-        <AlertBubble :alertText="alertMessage" :visible="showAlert" />
+        <AlertBubble :alertText="message" :visible="showMessage" />
         <section class="profile-header flex justify-between items-center">
             <h2 class="text-matcha-400 font-semibold">Profile</h2>
         </section>
@@ -181,12 +181,16 @@ import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
 import axios from 'axios';
 import AlertBubble from '@/components/AlertBubble.vue';
+import { handleMessage, message, showMessage } from '../utils/utils';
+import { useRouter } from 'vue-router';
 
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
 const { user, accounts, isDarkMode } = storeToRefs(localStore);
 const { setUser, toggleDarkMode } = localStore;
+
+const router = useRouter();
 
 // Password change form data
 const currentPassword = ref('');
@@ -199,9 +203,7 @@ const newEmail = ref('');
 const confirmEmail = ref('');
 const isUpdatingEmail = ref(false);
 
-// Alert functionality
-const alertMessage = ref('');
-const showAlert = ref(false);
+// Alert functionality handled by handleMessage utility
 
 // Local backup of accounts count to prevent disappearing
 const localAccountsCount = ref(0);
@@ -248,14 +250,9 @@ const canUpdateEmail = computed(() => {
            !isUpdatingEmail.value;
 });
 
-// Show alert function
-const showAlertMessage = (message: string, duration: number = 3000) => {
-    alertMessage.value = message;
-    showAlert.value = true;
-    
-    setTimeout(() => {
-        showAlert.value = false;
-    }, duration);
+// Alert function - using handleMessage utility
+const showAlertMessage = (text: string, duration: number = 3000) => {
+    handleMessage(text, {}, '', duration);
 };
 
 // Update password function
@@ -565,6 +562,11 @@ html.dark .toggle-label.active {
 @media (max-width: 768px) {
     .profile-header h2 {
         font-size: 28px;
+        align-self: center;
+    }
+    .profile-header {
+        flex-direction: column;
+        align-items: stretch;
     }
     
     .user-details {

@@ -123,9 +123,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
+import { useRoute } from 'vue-router';
 import axios from 'axios';
 
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
@@ -133,6 +134,7 @@ axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 const localStore = useLocalStore();
 const { accounts, transactions } = storeToRefs(localStore);
 const { setAccounts, setTransactions } = localStore;
+const route = useRoute();
 
 const selectedAccountId = ref<string>('');
 const currentPage = ref<number>(1);
@@ -147,10 +149,34 @@ const loadData = async () => {
         ]);
         setAccounts({ data: accResponse.data });
         setTransactions({ data: tranResponse.data });
+        
+        // Auto-select account if accountId query parameter exists
+        const accountId = route.query.accountId as string;
+        if (accountId && accResponse.data.some((acc: any) => acc.id === accountId)) {
+            selectedAccountId.value = accountId;
+        }
     } catch (error) {
         console.error("Error fetching data:", error);
     }
 };
+
+// Check for accountId query parameter on component mount
+onMounted(async () => {
+    const accountId = route.query.accountId as string;
+    
+    // If we have an accountId query parameter, auto-load data
+    if (accountId) {
+        // If data isn't already loaded, load it first
+        if (!accounts.value?.data?.length || !transactions.value?.data?.length) {
+            await loadData();
+        } else {
+            // Data is already loaded, just select the account
+            if (accounts.value.data.some((acc: any) => acc.id === accountId)) {
+                selectedAccountId.value = accountId;
+            }
+        }
+    }
+});
 
 // Handle account selection change
 const handleAccountChange = () => {
@@ -492,6 +518,26 @@ html.dark .account-select:focus {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .transactions-header h2 {
+        font-size: 32px;
+        align-self: center;
+    }
+    
+    .transactions-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .sync-button {
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+    
+    .account-selection-container {
+        padding: 15px;
+    }
+    
     .transactions-header-info {
         flex-direction: column;
         align-items: flex-start;
@@ -531,11 +577,20 @@ html.dark .account-select:focus {
 
 @media (max-width: 480px) {
     .transactions-header h2 {
-        font-size: 28px;
+        font-size: 24px;
+    }
+    
+    .sync-button {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .account-selection-container {
+        padding: 12px;
     }
     
     .transaction-card {
-        padding: 15px;
+        padding: 12px;
     }
     
     .account-select {
@@ -545,6 +600,10 @@ html.dark .account-select:focus {
     .page-numbers {
         flex-wrap: wrap;
         justify-content: center;
+    }
+    
+    .transactions-header-info h3 {
+        font-size: 18px;
     }
 }
 
