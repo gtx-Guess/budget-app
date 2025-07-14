@@ -21,11 +21,12 @@
 import { handleMessage, message, showMessage } from '../utils/utils';
 import { RouterLink, useRouter } from 'vue-router';
 import { ref } from 'vue';
-
+import { useLocalStore } from '@/stores/localStorage';
 import AlertBubble from '@/components/AlertBubble.vue';
 import axios from 'axios';
 
-
+const localStore = useLocalStore();
+const { setAccounts, setUser } = localStore;
 
 const userName = ref('');
 const password = ref('');
@@ -44,6 +45,7 @@ const login = async () => {
                 },
             });
             handleMessage('Logging in!', route, '/');
+            await loadUserData();
         } catch (error) {
             console.log(error);
             handleMessage('Login Unsuccessful, user/password combo failed');
@@ -51,6 +53,34 @@ const login = async () => {
     }else{
         handleMessage('User and password have to be included!');
     };
+};
+
+const loadUserData = async () => {
+    try {
+        // Load both user data and accounts in parallel
+        const [userResponse, accResponse] = await Promise.all([
+            axios.get(`/api/get_current_user`),
+            axios.get(`/api/get_local_accounts`)
+        ]);
+        
+        // Set user data from authenticated endpoint
+        setUser({
+            first_name: userResponse.data.first_name,
+            last_name: userResponse.data.last_name,
+            email_address: userResponse.data.email_address
+        });
+        
+        // Set accounts data
+        setAccounts({ data: accResponse.data });
+        
+    } catch (error) {
+        console.error("Error fetching user data:", error);
+        let errorMessage = 'Failed to fetch user data , let me retry';
+        if (axios.isAxiosError(error)) {
+            errorMessage = error.response?.data?.detail || error.message;
+        }
+        handleMessage(errorMessage);
+    }
 };
 
 </script>
