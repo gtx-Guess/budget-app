@@ -517,7 +517,7 @@ const updateEmail = async () => {
     display: inline-block;
     width: 50px;
     height: 26px;
-    background-color: #e5e7eb;
+    background-color: #c8c8c8;
     border-radius: 13px;
     position: relative;
     transition: background-color 0.3s ease;
