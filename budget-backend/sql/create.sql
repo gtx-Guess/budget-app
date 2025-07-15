@@ -1,5 +1,5 @@
 -- User Accounts Table
-CREATE TABLE `budget-app-user` (
+CREATE TABLE IF NOT EXISTS `budget-app-user` (
 	id INT AUTO_INCREMENT PRIMARY KEY,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     user_name VARCHAR(500),
@@ -10,6 +10,12 @@ CREATE TABLE `budget-app-user` (
     pld_public_token VARCHAR(500),
     refresh_token VARCHAR(1000)
 );
+
+-- Add missing columns if they don't exist (for existing databases)
+ALTER TABLE `budget-app-user` 
+ADD COLUMN IF NOT EXISTS first_name VARCHAR(255) AFTER user_name,
+ADD COLUMN IF NOT EXISTS last_name VARCHAR(255) AFTER first_name;
+
 -- Accounts table
 CREATE TABLE IF NOT EXISTS accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -20,9 +26,13 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     plaid_account_id VARCHAR(255) UNIQUE NOT NULL,
-    user_id INT NOT NULL,
+    user_id INT NOT NULL DEFAULT 1,
     FOREIGN KEY (user_id) REFERENCES `budget-app-user`(id)
 );
+
+-- Add user_id column to accounts table if it doesn't exist (for existing databases)
+ALTER TABLE accounts 
+ADD COLUMN IF NOT EXISTS user_id INT NOT NULL DEFAULT 1 AFTER plaid_account_id;
 
 -- Transactions table  
 CREATE TABLE IF NOT EXISTS transactions (
@@ -51,5 +61,10 @@ CREATE TABLE IF NOT EXISTS sync_log (
 
 -- Insert initial Tiko user (password: hashed version of your actual password)
 INSERT INTO `budget-app-user` (id, user_name, first_name, last_name, email_address, password) VALUES 
-(1, 'tiko', 'Tiko', 'User', 'tiko@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0jdXONOP3C')
-ON DUPLICATE KEY UPDATE user_name=user_name;
+(1, 'Tigran', 'Tiko', 'User', 'tiko2204@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0jdXONOP3C')
+ON DUPLICATE KEY UPDATE 
+    first_name = COALESCE(first_name, 'Tiko'),
+    last_name = COALESCE(last_name, 'User');
+
+-- Ensure existing accounts have user_id set
+UPDATE accounts SET user_id = 1 WHERE user_id IS NULL OR user_id = 0;

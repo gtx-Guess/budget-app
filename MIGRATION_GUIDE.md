@@ -2,6 +2,13 @@
 
 Follow these steps exactly to migrate your Budget App to the Windows machine and configure it properly.
 
+## **Prerequisites**
+
+Ensure you have these installed on the Windows machine:
+- **Docker Desktop** (with WSL2 backend for Windows)
+- **Python 3.8+** 
+- **Git** (optional, for version control)
+
 ## **Step 1: Get Windows Machine IP Address**
 
 First, find the Windows machine's IP address:
@@ -47,7 +54,9 @@ docker-compose up --build
 
 Wait for all services to start (database, backend, frontend, phpmyadmin).
 
-**Note:** The Tiko user (ID=1) will be automatically created by the database schema.
+**Important:** Wait at least 30 seconds for the database to fully initialize before proceeding to Step 4.
+
+**Note:** The Tigran/Tiko user (ID=1) will be automatically created by the database schema.
 
 ## **Step 4: Create Demo User and Data**
 
@@ -83,7 +92,7 @@ In your Kemp configuration:
 - Backend: `http://YOUR_WINDOWS_IP:8000`
 
 ### **Login Credentials:**
-- **Real User**: `tiko` / (your existing password)
+- **Real User**: `Tigran` / (your existing password)
 - **Demo User**: `demo` / `demo123`
 
 ### **External Access:**
@@ -105,13 +114,23 @@ If something doesn't work:
    ```bash
    docker logs budgetapp-frontend-1
    docker logs budgetapp-backend-1
+   docker logs budgetapp-database-1
    ```
 
 2. **Verify IP replacement:** Make sure all 3 files have the correct Windows IP
 
-3. **Test locally first:** Ensure `http://YOUR_WINDOWS_IP:5173` works before testing external access
+3. **Check Windows firewall:** Ensure ports 5173 and 8000 are allowed through Windows Defender Firewall
 
-4. **Check Kemp:** Ensure the real server shows as "Up" in Kemp interface
+4. **Test locally first:** Ensure `http://YOUR_WINDOWS_IP:5173` works before testing external access
+
+5. **Database connection issues:** If scripts fail, ensure database container is fully started (wait 30 seconds after docker-compose up)
+
+6. **Script dependencies:** Ensure Python has required packages:
+   ```bash
+   pip install mysql-connector-python passlib[bcrypt]
+   ```
+
+7. **Check Kemp:** Ensure the real server shows as "Up" in Kemp interface
 
 ## **Success Criteria**
 
