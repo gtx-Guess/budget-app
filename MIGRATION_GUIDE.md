@@ -47,6 +47,8 @@ docker-compose up --build
 
 Wait for all services to start (database, backend, frontend, phpmyadmin).
 
+**Note:** The Tiko user (ID=1) will be automatically created by the database schema.
+
 ## **Step 4: Create Demo User and Data**
 
 Run these commands in order:
