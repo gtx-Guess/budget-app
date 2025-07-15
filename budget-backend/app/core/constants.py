@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # CORS
-ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN")
+ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*").split(",")
 
 # Auth/JWT
 SECRET_KEY = os.getenv("SECRET_KEY")

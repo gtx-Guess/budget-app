@@ -4,7 +4,8 @@ Script to create a demo user account for the Budget App
 """
 
 import sys
-sys.path.append('/Users/tigran/Desktop/vscode/Budget App/budget-backend')
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from passlib.context import CryptContext
 import mysql.connector
@@ -19,6 +20,8 @@ def create_demo_user():
     # Demo user details
     demo_user = {
         'user_name': 'demo',
+        'first_name': 'Demo',
+        'last_name': 'User',
         'email_address': 'demo@budgetapp.com',
         'password': 'demo123',  # Simple password for demo
         'pld_public_token': None,
@@ -54,12 +57,14 @@ def create_demo_user():
         
         # Insert demo user
         insert_query = """
-            INSERT INTO `budget-app-user` (user_name, email_address, password, pld_public_token, refresh_token)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO `budget-app-user` (user_name, first_name, last_name, email_address, password, pld_public_token, refresh_token)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(insert_query, (
             demo_user['user_name'],
+            demo_user['first_name'],
+            demo_user['last_name'],
             demo_user['email_address'],
             hashed_password,
             demo_user['pld_public_token'],

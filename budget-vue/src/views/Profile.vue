@@ -569,6 +569,13 @@ html.dark .toggle-label.active {
         align-items: stretch;
     }
     
+    .user-info-section h3,
+    .account-summary-section h3,
+    .settings-section h3,
+    .profile-section h3 {
+        font-size: 16px;
+    }
+    
     .user-details {
         max-width: 100%;
         margin: 0;
@@ -600,20 +607,48 @@ html.dark .toggle-label.active {
     .toggle-container {
         align-self: flex-end;
     }
+    
+    .settings-input {
+        max-width: 100%;
+    }
+    
+    .update-btn {
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
+    .profile-header h2 {
+        font-size: 24px;
+    }
+    
     .user-info-section,
     .account-summary-section,
     .settings-section,
     .profile-section {
-        padding: 15px;
+        padding: 12px;
+    }
+    
+    .user-info-section h3,
+    .account-summary-section h3,
+    .settings-section h3,
+    .profile-section h3 {
+        font-size: 14px;
     }
     
     .count-circle {
         width: 50px;
         height: 50px;
         font-size: 20px;
+    }
+    
+    .form-subtitle {
+        font-size: 14px;
+    }
+    
+    .detail-label,
+    .detail-value {
+        font-size: 13px;
     }
 }
 

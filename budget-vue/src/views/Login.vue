@@ -13,7 +13,6 @@
                 </section>
                 <section style="height: 80px;">
                     <button @click="login()">Login</button>
-                    <button><router-link class="router-link" to="/create">Create Account</router-link></button>
                 </section>
             </div>
         </div>
@@ -182,6 +181,98 @@ html.dark .login-box > section > input:focus {
 
 html.dark .login-box > section > input::placeholder {
     color: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .login-main {
+        margin-top: 40px;
+        padding: 20px;
+    }
+    
+    .outer-box {
+        width: 350px;
+        height: 380px;
+        padding: 8px;
+    }
+    
+    .login-box {
+        width: 180px;
+        height: 240px;
+    }
+    
+    .login-box > section > input {
+        width: 260px;
+        font-size: 16pt;
+        height: 32px;
+    }
+    
+    .login-box > section > button {
+        font-size: 16pt;
+        width: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    section span {
+        font-size: 20pt !important;
+    }
+    
+    .login-main {
+        margin-top: 20px;
+        padding: 15px;
+    }
+    
+    .outer-box {
+        width: 100%;
+        max-width: 320px;
+        height: 360px;
+        padding: 6px;
+    }
+    
+    .login-box {
+        width: 160px;
+        height: 220px;
+    }
+    
+    .login-box > section > input {
+        width: 240px;
+        font-size: 14pt;
+        height: 30px;
+    }
+    
+    .login-box > section > button {
+        font-size: 14pt;
+        width: 180px;
+        padding: 8px;
+    }
+}
+
+@media (max-width: 360px) {
+    section span {
+        font-size: 18pt !important;
+    }
+    
+    .outer-box {
+        max-width: 300px;
+        height: 340px;
+    }
+    
+    .login-box {
+        width: 140px;
+        height: 200px;
+    }
+    
+    .login-box > section > input {
+        width: 220px;
+        font-size: 13pt;
+        height: 28px;
+    }
+    
+    .login-box > section > button {
+        font-size: 12pt;
+        width: 160px;
+    }
 }
 
 </style>

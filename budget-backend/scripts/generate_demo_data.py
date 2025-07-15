@@ -5,7 +5,8 @@ Creates realistic bank accounts and transactions for demo purposes
 """
 
 import sys
-sys.path.append('/Users/tigran/Desktop/vscode/Budget App/budget-backend')
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import mysql.connector
 import random

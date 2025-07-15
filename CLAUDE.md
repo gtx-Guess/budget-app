@@ -20,7 +20,8 @@ npm run preview    # Preview production build
 **Backend development (FastAPI):**
 ```bash
 cd budget-backend
-python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload --host 0.0.0.0  # Network accessible
+# OR for localhost only: python -m uvicorn app.main:app --reload
 ```
 
 **Development URLs:**

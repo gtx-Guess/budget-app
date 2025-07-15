@@ -33,7 +33,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN],
+    allow_origins=ALLOWED_ORIGIN,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,8 +66,8 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
             value=payload.get('access_token'),
             httponly=True,
             max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
-            samesite="none",
-            secure=True
+            samesite="lax",
+            secure=False
         )
 
         response.set_cookie(
@@ -75,8 +75,8 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
             value=payload.get('refresh_token'),
             httponly=True,
             max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-            samesite="none",
-            secure=True
+            samesite="lax",
+            secure=False
         )
 
         return response
@@ -96,20 +96,20 @@ async def logout(response: Response) -> JSONResponse:
     response.delete_cookie(
         key="access_token",
         path="/",  # Ensure this matches the path used to set the cookie
-        samesite="none",
-        secure=True
+        samesite="lax",
+        secure=False
     )
     response.delete_cookie(
         key="refresh_token",
         path="/",
-        samesite="none",
-        secure=True
+        samesite="lax",
+        secure=False
     )
     response.delete_cookie(
         key="user_id",
         path="/",
-        samesite="none",
-        secure=True
+        samesite="lax",
+        secure=False
     )
     
     return response
@@ -142,8 +142,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=access_token,
                 httponly=True,
                 max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
             )
 
             response.set_cookie(
@@ -151,8 +151,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=refresh_token,
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
             )
 
             response.set_cookie(
@@ -160,8 +160,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=user_id,
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
             )
 
             response.set_cookie(
@@ -169,8 +169,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value="true" if is_admin else "false",
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
             )
 
             return response
