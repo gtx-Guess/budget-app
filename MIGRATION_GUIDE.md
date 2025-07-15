@@ -58,7 +58,12 @@ Wait for all services to start (database, backend, frontend, phpmyadmin).
 
 **Note:** The Tigran/Tiko user (ID=1) will be automatically created by the database schema.
 
-## **Step 4: Create Demo User and Data**
+## **Step 4: Database Setup (Choose One Option)**
+
+### **Option A: Import Complete Database (Recommended)**
+If you have the `budget_app_complete_export.sql` file, follow the **DATABASE_IMPORT.md** guide for faster setup.
+
+### **Option B: Create Fresh Demo Data**
 
 Run these commands in order:
 
