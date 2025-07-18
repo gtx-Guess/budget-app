@@ -184,8 +184,6 @@ import AlertBubble from '@/components/AlertBubble.vue';
 import { handleMessage, message, showMessage } from '../utils/utils';
 import { useRouter } from 'vue-router';
 
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
-
 const localStore = useLocalStore();
 const { user, accounts, isDarkMode } = storeToRefs(localStore);
 const { setUser, toggleDarkMode } = localStore;

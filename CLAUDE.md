@@ -25,9 +25,9 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0  # Network accessible
 ```
 
 **Development URLs:**
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Database Admin: http://localhost:8080 (phpMyAdmin)
+- Frontend: http://localhost:5173 (local) or http://192.168.0.176:5173 (network)
+- Backend API: http://localhost:8000 (local) or http://192.168.0.176:8000 (network)
+- Database Admin: http://localhost:8080 (local) or http://192.168.0.176:8080 (network)
 - Database: localhost:3306
 
 ## Architecture Overview
@@ -78,7 +78,14 @@ This is a full-stack budget tracking application with real bank data integration
 - JWT secrets
 
 **Frontend requires `.env` file:**
-- `VITE_BACKEND_URL=http://localhost:8000`
+```bash
+VITE_BACKEND_URL=http://localhost:8000
+VITE_PRODUCTION_HOSTNAME=app.tdnet.xyz
+VITE_PRODUCTION_API_URL=https://api.tdnet.xyz
+VITE_LOCAL_NETWORK_HOSTNAME=192.168.0.176
+VITE_LOCAL_NETWORK_API_URL=http://192.168.0.176:8000
+VITE_LOCAL_DEV_API_URL=http://localhost:8000
+```
 
 ## Key Features
 

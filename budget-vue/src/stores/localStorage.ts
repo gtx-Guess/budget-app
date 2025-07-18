@@ -8,7 +8,19 @@ export const useLocalStore = defineStore('localStore', () => {
     const user = ref<User | null>(null);
     const transactions = ref<Transactions>({ data: [] });
     const accounts = ref<Accounts>({ data: [] });
-    const isDarkMode = ref<boolean>(false);
+    
+    // Initialize dark mode from localStorage on store creation
+    const initializeDarkModeValue = () => {
+        const saved = localStorage.getItem('darkMode');
+        if (saved !== null) {
+            return JSON.parse(saved);
+        } else {
+            // Default to system preference
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+    };
+    
+    const isDarkMode = ref<boolean>(initializeDarkModeValue());
 
     // Initialize dark mode from localStorage
     const initializeDarkMode = () => {
@@ -30,7 +42,10 @@ export const useLocalStore = defineStore('localStore', () => {
             document.documentElement.classList.remove('dark');
         }
     };
-
+    
+    // Apply dark mode immediately
+    applyDarkMode();
+    
     // Watch for dark mode changes and persist
     watch(isDarkMode, (newValue) => {
         localStorage.setItem('darkMode', JSON.stringify(newValue));

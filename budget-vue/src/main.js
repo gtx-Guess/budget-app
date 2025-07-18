@@ -7,9 +7,65 @@ import axios from 'axios'
 import { useLocalStore } from '@/stores/localStorage'
 import { loadUserData, checkAuthentication } from '@/utils/auth'
 
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+// Automatically detect environment and set backend URL
+const getBackendURL = () => {
+  const hostname = window.location.hostname;
+  console.log('🌐 Current hostname:', hostname);
+  
+  // Production environment
+  if (hostname === import.meta.env.VITE_PRODUCTION_HOSTNAME) {
+    console.log('🚀 Production mode - using', import.meta.env.VITE_PRODUCTION_API_URL);
+    return import.meta.env.VITE_PRODUCTION_API_URL;
+  }
+  
+  // Local network environment
+  if (hostname === import.meta.env.VITE_LOCAL_NETWORK_HOSTNAME) {
+    console.log('🏠 Local network mode - using', import.meta.env.VITE_LOCAL_NETWORK_API_URL);
+    return import.meta.env.VITE_LOCAL_NETWORK_API_URL;
+  }
+  
+  // Local development fallback
+  console.log('💻 Local development mode - using', import.meta.env.VITE_LOCAL_DEV_API_URL);
+  return import.meta.env.VITE_LOCAL_DEV_API_URL;
+};
+
+const backendURL = getBackendURL();
+console.log('🔗 Setting axios baseURL to:', backendURL);
+axios.defaults.baseURL = backendURL;
 axios.defaults.withCredentials = true
 
+const pinia = createPinia();
+const app = createApp(App);
+
+app.use(pinia).use(router);
+
+// Mount the app first
+app.mount("#app");
+
+// Initialize state after app is mounted
+const initializeApp = async () => {
+  try {
+    // Initialize dark mode after app is mounted
+    const store = useLocalStore();
+    store.initializeDarkMode();
+    
+    // Check authentication and load user data
+    const isAuthenticated = await checkAuthentication();
+    if (isAuthenticated) {
+      console.log('🔄 User authenticated, loading data...');
+      await loadUserData(store);
+    } else {
+      console.log('👤 User not authenticated');
+    }
+  } catch (error) {
+    console.log('❌ Error during app initialization:', error);
+  }
+};
+
+// Initialize app state
+initializeApp();
+
+// Set up axios interceptor after app is mounted
 let isRefreshing = false
 
 axios.interceptors.response.use(
@@ -37,32 +93,3 @@ axios.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
-const pinia = createPinia();
-const app = createApp(App);
-
-app.use(pinia).use(router);
-
-// Initialize dark mode after Pinia is set up
-const store = useLocalStore();
-store.initializeDarkMode();
-
-// Initialize user data if authenticated (handles page refresh)
-const initializeUserData = async () => {
-  try {
-    const isAuthenticated = await checkAuthentication();
-    if (isAuthenticated) {
-      console.log('🔄 User authenticated, loading data...');
-      await loadUserData();
-    } else {
-      console.log('👤 User not authenticated');
-    }
-  } catch (error) {
-    console.log('❌ Error checking authentication:', error);
-  }
-};
-
-// Initialize user data before mounting the app
-initializeUserData().then(() => {
-  app.mount("#app");
-});

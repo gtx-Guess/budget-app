@@ -65,11 +65,14 @@ const login = async () => {
     display: flex;
     flex-direction: row;
     justify-content: center;
+    align-items: flex-start;
     margin-top: 80px;
     width: 100%;
     min-height: 100vh;
     background: var(--bg-primary);
     transition: background-color 0.3s ease;
+    padding: 0 20px;
+    box-sizing: border-box;
 }
 
 .outer-box {
@@ -77,7 +80,8 @@ const login = async () => {
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    width: 400px;
+    width: 100%;
+    max-width: 400px;
     padding: 10px;
     border-radius: 20px;
     height: 400px;
@@ -85,6 +89,7 @@ const login = async () => {
     box-shadow: 2px 2px 24px rgba(107, 155, 79, 0.3);
     border: 2px solid rgb(107, 155, 79);
     transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    box-sizing: border-box;
 }
 
 html.dark .outer-box {
@@ -98,7 +103,7 @@ html.dark .outer-box {
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    width: 200px;
+    width: 260px;
     height: 250px;
 }
 
@@ -121,8 +126,11 @@ html.dark .outer-box {
     color: var(--text-primary);
     transition: all 0.3s ease;
     height: 35px;
-    width: 300px;
+    width: 100%;
+    max-width: 300px;
+    min-width: 200px;
     font-size: 18pt;
+    box-sizing: border-box;
 }
 
 html.dark .login-box > section > input {
@@ -142,9 +150,12 @@ html.dark .login-box > section > input {
     color: #ffffff !important;
     transition: all 0.3s ease;
     font-size: 20pt;
-    width: 240px;
+    width: 100%;
+    max-width: 240px;
+    min-width: 180px;
     cursor: pointer;
     font-weight: 600;
+    box-sizing: border-box;
 }
 
 .login-box > section > button:hover {
@@ -187,29 +198,30 @@ html.dark .login-box > section > input::placeholder {
 @media (max-width: 768px) {
     .login-main {
         margin-top: 40px;
-        padding: 20px;
+        padding: 15px;
     }
     
     .outer-box {
-        width: 350px;
+        max-width: 350px;
         height: 380px;
-        padding: 8px;
+        padding: 15px;
     }
     
     .login-box {
-        width: 180px;
+        width: 100%;
+        max-width: 250px;
         height: 240px;
     }
     
     .login-box > section > input {
-        width: 260px;
+        max-width: 250px;
         font-size: 16pt;
         height: 32px;
     }
     
     .login-box > section > button {
         font-size: 16pt;
-        width: 200px;
+        max-width: 200px;
     }
 }
 
@@ -220,58 +232,63 @@ html.dark .login-box > section > input::placeholder {
     
     .login-main {
         margin-top: 20px;
-        padding: 15px;
+        padding: 10px;
     }
     
     .outer-box {
-        width: 100%;
-        max-width: 320px;
+        max-width: 95%;
         height: 360px;
-        padding: 6px;
+        padding: 10px;
+        margin: 0 auto;
     }
     
     .login-box {
-        width: 160px;
+        width: 100%;
+        max-width: 220px;
         height: 220px;
     }
     
     .login-box > section > input {
-        width: 240px;
+        max-width: 220px;
         font-size: 14pt;
         height: 30px;
+        padding: 8px;
     }
     
     .login-box > section > button {
         font-size: 14pt;
-        width: 180px;
+        max-width: 180px;
         padding: 8px;
     }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 390px) {
     section span {
         font-size: 18pt !important;
     }
     
     .outer-box {
-        max-width: 300px;
+        max-width: 90%;
         height: 340px;
+        padding: 8px;
     }
     
     .login-box {
-        width: 140px;
+        max-width: 200px;
         height: 200px;
     }
     
     .login-box > section > input {
-        width: 220px;
+        max-width: 200px;
         font-size: 13pt;
         height: 28px;
+        padding: 6px;
     }
     
     .login-box > section > button {
         font-size: 12pt;
-        width: 160px;
+        max-width: 160px;
+        padding: 6px;
     }
 }
 

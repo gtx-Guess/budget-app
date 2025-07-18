@@ -5,15 +5,16 @@ import { useLocalStore } from '@/stores/localStorage';
  * Loads user data and accounts from the backend
  * Used both during login and app initialization
  */
-export const loadUserData = async () => {
-    const localStore = useLocalStore();
-    const { setUser, setAccounts } = localStore;
+export const loadUserData = async (store = null) => {
+    const localStore = store || useLocalStore();
+    const { setUser, setAccounts, setTransactions } = localStore;
     
     try {
-        // Load both user data and accounts in parallel
-        const [userResponse, accResponse] = await Promise.all([
+        // Load user data, accounts, and transactions in parallel
+        const [userResponse, accResponse, tranResponse] = await Promise.all([
             axios.get(`/api/get_current_user`),
-            axios.get(`/api/get_local_accounts`)
+            axios.get(`/api/get_local_accounts`),
+            axios.get(`/api/get_local_transactions`)
         ]);
         
         // Set user data from authenticated endpoint
@@ -26,7 +27,10 @@ export const loadUserData = async () => {
         // Set accounts data
         setAccounts({ data: accResponse.data });
         
-        console.log('✅ User data loaded successfully');
+        // Set transactions data
+        setTransactions({ data: tranResponse.data });
+        
+        console.log('✅ User data and transactions loaded successfully');
         return true;
         
     } catch (error) {

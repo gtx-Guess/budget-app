@@ -238,7 +238,6 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 import AlertBubble from '@/components/AlertBubble.vue';
 import { handleMessage, message, showMessage } from '../utils/utils';
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
 const { accounts, transactions, user } = storeToRefs(localStore);
@@ -537,10 +536,13 @@ const buttonClicked = async () => {
     width: fit-content;
     min-width: 300px;
     max-width: 80%;
-    justify-content: space-around;
+    justify-content: center;
+    align-items: center;
     background: rgb(239, 239, 239);
     color: rgb(107 155 79);
     border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
 }
 
 .dashboard-views-controller > * {
@@ -551,11 +553,47 @@ const buttonClicked = async () => {
     white-space: nowrap;
     flex-shrink: 0;
     text-align: center;
+    border: 2px solid rgba(107, 155, 79, 0.2);
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(107, 155, 79, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    color: rgb(107, 155, 79);
+}
+
+/* Dark mode for dashboard view controllers */
+html.dark .dashboard-views-controller {
+    background: rgb(50, 50, 50);
+}
+
+html.dark .dashboard-views-controller > * {
+    background: rgba(60, 60, 60, 0.8);
+    border-color: rgba(139, 185, 111, 0.3);
+    color: rgb(220, 220, 220);
+    box-shadow: 0 1px 3px rgba(139, 185, 111, 0.1);
+}
+
+html.dark .dashboard-views-controller > *:hover {
+    background: rgba(139, 185, 111, 0.2);
+    border-color: rgba(139, 185, 111, 0.4);
+    color: rgb(240, 240, 240);
+}
+
+.dashboard-views-controller > *:hover {
+    background: rgba(107, 155, 79, 0.1);
+    border-color: rgba(107, 155, 79, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(107, 155, 79, 0.15);
 }
 
 .active-controller {
     background: rgb(107 155 79) !important;
     color: white !important;
+    border-color: rgb(107 155 79) !important;
+    box-shadow: 0 8px 25px rgba(107, 155, 79, 0.5) !important;
+    transform: translateY(-8px) !important;
+    font-weight: 600 !important;
+    z-index: 10;
+    position: relative;
 }
 
 .dashboard-header {
@@ -621,6 +659,10 @@ const buttonClicked = async () => {
     padding: 12px 24px;
     font-size: 14px;
     font-weight: 500;
+    color: white !important;
+    background-color: rgb(107, 155, 79) !important;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 
@@ -642,13 +684,17 @@ const buttonClicked = async () => {
     }
     
     .dashboard-views-controller {
-        max-width: 95%;
+        max-width: 98%;
         min-width: 250px;
+        width: 98%;
+        margin: 0 auto;
     }
     
     .dashboard-views-controller > * {
-        padding: 12px 15px;
-        font-size: 15px;
+        padding: 17px 12px;
+        font-size: 18px;
+        flex: 1;
+        min-width: 0;
     }
     
     .account-name {
@@ -963,10 +1009,70 @@ html.dark .progress-bar {
     .dashboard-views-controller {
         max-width: 98%;
         min-width: 200px;
+        width: 98%;
+        margin: 0 auto;
     }
     
     .dashboard-views-controller > * {
-        padding: 10px 12px;
+        padding: 12px 6px;
+        font-size: 14px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .accounts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .account-section {
+        padding: 15px;
+    }
+    
+    .account-name {
+        font-size: 18px;
+    }
+    
+    .account-details {
+        gap: 15px;
+        font-size: 14px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .sync-button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 390px) {
+    .welcome-message {
+        font-size: 24px;
+    }
+    
+    .dashboard-header h2 {
+        font-size: 28px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+        margin: 15px 0;
+    }
+    
+    .dashboard-views-controller {
+        max-width: 98%;
+        min-width: 200px;
+        width: 98%;
+        margin: 0 auto;
+    }
+    
+    .dashboard-views-controller > * {
+        padding: 12px 6px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
     }
     
     .accounts-grid {

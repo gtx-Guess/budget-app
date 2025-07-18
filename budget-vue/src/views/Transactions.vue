@@ -90,7 +90,7 @@
                         <button 
                             v-for="page in visiblePageNumbers" 
                             :key="page"
-                            @click="goToPage(page)"
+                            @click="goToPage(Number(page))"
                             class="page-number-btn"
                             :class="{ 'active': page === currentPage }"
                         >
@@ -128,8 +128,6 @@ import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
-
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 const localStore = useLocalStore();
 const { accounts, transactions } = storeToRefs(localStore);
@@ -316,6 +314,7 @@ const formatDate = (dateStr: string) => {
     padding: 12px 24px;
     font-size: 14px;
     font-weight: 500;
+    color: white !important;
 }
 
 .content-container {

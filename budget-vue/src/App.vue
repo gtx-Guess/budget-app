@@ -129,7 +129,42 @@ nav {
 
 @media (max-width: 480px) {
     .brand-text {
-        font-size: 14pt !important;
+        font-size: 12pt !important;
+        white-space: nowrap;
+    }
+    
+    .nav-brand {
+        flex-shrink: 0;
+        min-width: 0;
+        padding: 6px;
+    }
+    
+    .nav-links {
+        gap: 2px;
+        flex-shrink: 1;
+    }
+    
+    .nav-link {
+        padding: 6px;
+        min-width: 36px;
+    }
+}
+
+/* iPhone 13 Pro and similar devices */
+@media (max-width: 430px) {
+    .brand-text {
+        font-size: 11pt !important;
+    }
+    
+    .nav-brand {
+        padding: 4px;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+    .brand-text {
+        font-size: 10pt !important;
     }
 }
 
