@@ -6,6 +6,10 @@ import '@/styles.css'
 import axios from 'axios'
 import { useLocalStore } from '@/stores/localStorage'
 import { loadUserData, checkAuthentication } from '@/utils/auth'
+import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, LineElement, PointElement, ArcElement } from 'chart.js'
+
+// Register Chart.js components
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, LineElement, PointElement, ArcElement)
 
 // Automatically detect environment and set backend URL
 const getBackendURL = () => {

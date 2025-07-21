@@ -1,12 +1,18 @@
-FROM node:18-alpine
+FROM node:20-slim
 
 WORKDIR /app
+
+# Install necessary system dependencies for native modules
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Clean install dependencies with legacy peer deps
+RUN rm -rf node_modules package-lock.json && npm install --legacy-peer-deps
+
+# Deliberately install rollup native module for Linux
+RUN npm install --save-dev @rollup/rollup-linux-x64-gnu
 
 # Copy source code
 COPY . .

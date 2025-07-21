@@ -1,91 +1,175 @@
 <template>
-    <div>
-        <button>
-            Connect a bank account
-        </button>
+  <div class="analytics-container">
+    <div class="analytics-header">
+      <h1>Budget Analytics</h1>
+      <p class="subtitle">Insights into your spending patterns and financial trends</p>
     </div>
+
+    <div class="charts-grid">
+      <!-- Spending by Vendor Chart -->
+      <div class="chart-card">
+        <SpendingByVendorChart />
+      </div>
+
+      <!-- Monthly Trends Chart -->
+      <div class="chart-card">
+        <MonthlySpendingTrendsChart />
+      </div>
+
+      <!-- Income vs Expenses Chart -->
+      <div class="chart-card">
+        <IncomeVsExpensesChart />
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="summary-stats" v-if="summaryStats">
+      <div class="stat-card">
+        <h3>Total Transactions</h3>
+        <p class="stat-value">{{ summaryStats.totalTransactions }}</p>
+      </div>
+      <div class="stat-card">
+        <h3>Total Income</h3>
+        <p class="stat-value positive">${{ summaryStats.totalIncome.toFixed(2) }}</p>
+      </div>
+      <div class="stat-card">
+        <h3>Total Expenses</h3>
+        <p class="stat-value negative">${{ summaryStats.totalExpenses.toFixed(2) }}</p>
+      </div>
+      <div class="stat-card">
+        <h3>Net Income</h3>
+        <p class="stat-value" :class="summaryStats.netIncome >= 0 ? 'positive' : 'negative'">
+          ${{ summaryStats.netIncome.toFixed(2) }}
+        </p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue'
+import { useLocalStore } from '@/stores/localStorage'
+import SpendingByVendorChart from '@/components/SpendingByVendorChart.vue'
+import MonthlySpendingTrendsChart from '@/components/MonthlySpendingTrendsChart.vue'
+import IncomeVsExpensesChart from '@/components/IncomeVsExpensesChart.vue'
 
+const localStore = useLocalStore()
+
+const summaryStats = computed(() => {
+  if (!localStore.transactions.data || localStore.transactions.data.length === 0) {
+    return null
+  }
+
+  const totalTransactions = localStore.transactions.data.length
+  const totalIncome = localStore.transactions.data
+    .filter(t => t.fields.USD > 0)
+    .reduce((sum, t) => sum + t.fields.USD, 0)
+  const totalExpenses = localStore.transactions.data
+    .filter(t => t.fields.USD < 0)
+    .reduce((sum, t) => sum + Math.abs(t.fields.USD), 0)
+  const netIncome = totalIncome - totalExpenses
+
+  return {
+    totalTransactions,
+    totalIncome,
+    totalExpenses,
+    netIncome
+  }
+})
 </script>
 
 <style scoped>
-:root {
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
-
-    color-scheme: light dark;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
-
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+.analytics-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-a {
-    font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;
+.analytics-header {
+  text-align: center;
+  margin-bottom: 40px;
 }
 
-a:hover {
-    color: #535bf2;
+.analytics-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: #333;
 }
 
-body {
-    margin: 0;
-    display: flex;
-    place-items: center;
-    min-width: 320px;
-    min-height: 100vh;
+.subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
 }
 
-h1 {
-    font-size: 3.2em;
-    line-height: 1.1;
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
 }
 
-button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: #1a1a1a;
-    cursor: pointer;
-    transition: border-color 0.25s;
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
-button:hover {
-    border-color: #646cff;
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
 }
 
-button:focus,
-button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
-.card {
-    padding: 2em;
+.stat-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
 }
 
-@media (prefers-color-scheme: light) {
-    :root {
-        color: #213547;
-        background-color: #ffffff;
-    }
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  color: #333;
+}
 
-    a:hover {
-        color: #747bff;
-    }
+.stat-value.positive {
+  color: #059669;
+}
 
-    button {
-        background-color: #f9f9f9;
-    }
+.stat-value.negative {
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-card {
+    padding: 15px;
+  }
+  
+  .analytics-header h1 {
+    font-size: 2rem;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
 }
 </style>
