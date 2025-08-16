@@ -1,7 +1,7 @@
 <template>
   <div class="analytics-container">
     <div class="analytics-header">
-      <h1>Budget Analytics</h1>
+      <h1 class="text-match-400">Budget Analytics</h1>
       <p class="subtitle">Insights into your spending patterns and financial trends</p>
     </div>
 
@@ -93,7 +93,6 @@ const summaryStats = computed(() => {
 .analytics-header h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
-  color: #333;
 }
 
 .subtitle {
