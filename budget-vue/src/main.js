@@ -8,33 +8,25 @@ import { useLocalStore } from '@/stores/localStorage'
 import { loadUserData, checkAuthentication } from '@/utils/auth'
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, LineElement, PointElement, ArcElement } from 'chart.js'
 
-// Register Chart.js components
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, LineElement, PointElement, ArcElement)
 
-// Automatically detect environment and set backend URL
 const getBackendURL = () => {
   const hostname = window.location.hostname;
-  console.log('🌐 Current hostname:', hostname);
   
-  // Production environment
   if (hostname === import.meta.env.VITE_PRODUCTION_HOSTNAME) {
-    console.log('🚀 Production mode - using', import.meta.env.VITE_PRODUCTION_API_URL);
     return import.meta.env.VITE_PRODUCTION_API_URL;
   }
   
-  // Local network environment
   if (hostname === import.meta.env.VITE_LOCAL_NETWORK_HOSTNAME) {
     console.log('🏠 Local network mode - using', import.meta.env.VITE_LOCAL_NETWORK_API_URL);
     return import.meta.env.VITE_LOCAL_NETWORK_API_URL;
   }
   
-  // Local development fallback
   console.log('💻 Local development mode - using', import.meta.env.VITE_LOCAL_DEV_API_URL);
   return import.meta.env.VITE_LOCAL_DEV_API_URL;
 };
 
 const backendURL = getBackendURL();
-console.log('🔗 Setting axios baseURL to:', backendURL);
 axios.defaults.baseURL = backendURL;
 axios.defaults.withCredentials = true
 
@@ -43,13 +35,8 @@ const app = createApp(App);
 
 app.use(pinia).use(router);
 
-// Mount the app first
-app.mount("#app");
-
-// Initialize state after app is mounted
 const initializeApp = async () => {
   try {
-    // Initialize dark mode after app is mounted
     const store = useLocalStore();
     store.initializeDarkMode();
     
@@ -66,16 +53,17 @@ const initializeApp = async () => {
   }
 };
 
-// Initialize app state
-initializeApp();
+// Run initialization
+initializeApp().then(() => {
+  app.mount("#app");
+});
 
-// Set up axios interceptor after app is mounted
+// Set up axios interceptor
 let isRefreshing = false
 
 axios.interceptors.response.use(
   response => response,
   async error => {
-    // Don't retry refresh_token requests to avoid infinite loops
     if (error.config?.url?.includes('/api/refresh_token')) {
       return Promise.reject(error)
     }

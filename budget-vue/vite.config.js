@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 
-// https://vitejs.dev/config/
 export default defineConfig({
     plugins: [vue()],
     resolve: {
@@ -14,14 +13,14 @@ export default defineConfig({
         host: "0.0.0.0",
         port: 5173,
         hmr: {
-            port: 5173,
-            // Disable HMR over network connections to avoid WebSocket issues
-            // HMR will only work for localhost development
-            overlay: true
+            protocol: 'wss',
+            host: 'app.tdnet.xyz',
+            clientPort: 443,
+            port: 5173
         },
         watch: {
-            usePolling: true, // Enable polling for Docker
-            interval: 1000, // Check every second
+            usePolling: true,
+            interval: 1000,
         },
         allowedHosts: [
             "app.tdnet.xyz",
