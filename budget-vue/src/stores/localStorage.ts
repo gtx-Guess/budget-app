@@ -70,6 +70,7 @@ export const useLocalStore = defineStore('localStore', () => {
         //objects
         accounts,
         transactions,
+        vendorCategories,
         user,
         isDarkMode,
         //setters

@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     account_id VARCHAR(255) NOT NULL
 );
 
--- Sync log table
+-- Sync Log table
 CREATE TABLE IF NOT EXISTS sync_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sync_type VARCHAR(50) NOT NULL,
