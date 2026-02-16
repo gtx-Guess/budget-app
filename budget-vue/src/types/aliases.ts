@@ -4,6 +4,12 @@
 
 
 //Definitions**************************
+/**
+ * Model/Type Dfeinitions
+ */
+
+
+//Definitions**************************
 interface TransactionFields {
     "USD": number;
     "Notes": string;

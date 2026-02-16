@@ -269,6 +269,8 @@ class AirtableSyncService:
         query = """
             INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes, account_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes, account_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             name = VALUES(name),
             usd = VALUES(usd),
@@ -285,6 +287,8 @@ class AirtableSyncService:
             fields.get('USD'),
             fields.get('Date'),
             fields.get('Vendor'),
+            fields.get('Notes'),
+            fields.get('Account ID')
             fields.get('Notes'),
             fields.get('Account ID')
         ))
