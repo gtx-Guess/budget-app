@@ -406,4 +406,161 @@ async def get_user_stats(status: dict = Depends(auth.admin_required)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/get_current_user")
+async def get_current_user(status: dict = Depends(auth.authenticated_user)):
+    """Get current authenticated user's details"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        user = database.get_user_by_id(user_id)
+        if isinstance(user, dict) and "error" in user:
+            raise HTTPException(status_code=500, detail=user["error"])
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        return user
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/update_password")
+async def update_password(
+    password_data: dict,
+    status: dict = Depends(auth.authenticated_user)
+):
+    """Update user's password"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        current_password = password_data.get("current_password")
+        new_password = password_data.get("new_password")
+        
+        if not current_password or not new_password:
+            raise HTTPException(status_code=400, detail="Both current and new passwords are required")
+        
+        # Verify current password
+        user = database.get_user_by_id(user_id, include_password=True)
+        if not user or not auth.verify_pwd(current_password, user.get("password", "")):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        
+        # Hash new password and update
+        hashed_password = auth.hash_pwd(new_password)
+        result = database.update_user_password(user_id, hashed_password)
+        
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"message": "Password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/update_email")
+async def update_email(
+    email_data: dict,
+    status: dict = Depends(auth.authenticated_user)
+):
+    """Update user's email address"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        new_email = email_data.get("new_email")
+        
+        if not new_email:
+            raise HTTPException(status_code=400, detail="New email address is required")
+        
+        # Basic email validation
+        if "@" not in new_email or "." not in new_email:
+            raise HTTPException(status_code=400, detail="Please enter a valid email address")
+        
+        # Update email
+        result = database.update_user_email(user_id, new_email)
+        
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"message": "Email updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin-only endpoints
+@app.get("/api/admin/users")
+async def get_all_users(status: dict = Depends(auth.admin_required)):
+    """Get all users (admin only)"""
+    try:
+        users = database.get_all_users_admin()
+        return JSONResponse(status_code=200, content=users)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset_password")
+async def admin_reset_password(
+    reset_data: dict,
+    status: dict = Depends(auth.admin_required)
+):
+    """Reset any user's password (admin only)"""
+    try:
+        target_user = reset_data.get("username")
+        new_password = reset_data.get("new_password")
+        
+        if not target_user or not new_password:
+            raise HTTPException(status_code=400, detail="Username and new password are required")
+        
+        # Hash the new password
+        hashed_password = auth.hash_pwd(new_password)
+        
+        # Update password in database
+        success = database.admin_update_user_password(target_user, hashed_password)
+        if success:
+            return JSONResponse(status_code=200, content={
+                "message": f"Password reset successfully for user: {target_user}"
+            })
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset_demo_account")
+async def reset_demo_account(status: dict = Depends(auth.admin_required)):
+    """Reset demo account password and regenerate data (admin only)"""
+    try:
+        # Reset demo password
+        demo_password = "demo123"
+        hashed_password = auth.hash_pwd(demo_password)
+        
+        password_reset = database.admin_update_user_password("demo", hashed_password)
+        if not password_reset:
+            raise HTTPException(status_code=404, detail="Demo user not found")
+        
+        # Regenerate demo data
+        data_reset = database.reset_demo_data()
+        
+        return JSONResponse(status_code=200, content={
+            "message": "Demo account reset successfully",
+            "new_password": demo_password,
+            "data_regenerated": data_reset
+        })
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/user_stats")
+async def get_user_stats(status: dict = Depends(auth.admin_required)):
+    """Get user statistics (admin only)"""
+    try:
+        stats = database.get_user_statistics()
+        return JSONResponse(status_code=200, content=stats)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # python -m uvicorn app.main:app --reload

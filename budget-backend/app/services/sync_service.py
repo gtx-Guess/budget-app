@@ -47,6 +47,24 @@ class AirtableSyncService:
             if connection:
                 connection.close()
 
+    def is_demo_user(self, user_id: str) -> bool:
+        """Check if user is a demo user"""
+        connection = self.get_db_connection()
+        if not connection:
+            return False
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT user_name FROM `budget-app-user` WHERE id = %s", (user_id,))
+            result = cursor.fetchone()
+            return result and result[0] == 'demo'
+        except pymysql.MySQLError as e:
+            LOG.error(f"Database error checking demo user: {e}")
+            return False
+        finally:
+            if connection:
+                connection.close()
+
     async def start_background_sync(self):
         """Start the background sync task"""
         LOG.info("Starting background sync service...")
@@ -277,6 +295,7 @@ class AirtableSyncService:
             date = VALUES(date),
             vendor = VALUES(vendor),
             notes = VALUES(notes),
+            account_id = VALUES(account_id),
             account_id = VALUES(account_id),
             updated_at = CURRENT_TIMESTAMP
         """

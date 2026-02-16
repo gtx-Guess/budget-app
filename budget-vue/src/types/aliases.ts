@@ -17,6 +17,7 @@ interface TransactionFields {
     "Vendor": string;
     "Name": string;
     "Account ID": string;
+    "Account ID": string;
 }
 interface Transaction {
     id: string;
@@ -28,6 +29,7 @@ interface AccountFields {
     "Institution": string;
     "Last Successful Update": string;
     "Plaid Account ID": string;
+    "Plaid Account ID": string;
 }
 interface Account {
     id: string;
@@ -37,8 +39,24 @@ interface Account {
 
 
 //Exports**************************
+
+//Exports**************************
 export interface Accounts {
     data: Account[];
+}
+export interface LoginApiResponse {
+    status: Number;
+    data: {
+        message: string;
+    };
+}
+export interface User {
+    first_name: string;
+    last_name: string;
+    email_address: string;
+}
+export interface Transactions {
+    data: Transaction[];
 }
 export interface LoginApiResponse {
     status: Number;
