@@ -7,7 +7,12 @@ services:
       - ./budget-vue:/app
       - /app/node_modules
     environment:
-      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_BACKEND_URL=https://app.tdnet.xyz
+      - VITE_PRODUCTION_HOSTNAME=app.tdnet.xyz
+      - VITE_PRODUCTION_API_URL=https://api.tdnet.xyz
+      - VITE_LOCAL_NETWORK_HOSTNAME=192.168.0.86
+      - VITE_LOCAL_NETWORK_API_URL=http://192.168.0.86:8000
+      - VITE_LOCAL_DEV_API_URL=http://localhost:8000
 
   backend:
     build: ./budget-backend
@@ -45,7 +50,7 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     environment:
       PMA_HOST: database
       PMA_USER: devuser

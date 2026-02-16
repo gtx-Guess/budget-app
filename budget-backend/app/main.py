@@ -33,7 +33,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN],
+    allow_origins=ALLOWED_ORIGIN,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,8 +66,8 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
             value=payload.get('access_token'),
             httponly=True,
             max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
-            samesite="none",
-            secure=True
+            samesite="lax",
+            secure=False
         )
 
         response.set_cookie(
@@ -75,8 +75,8 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
             value=payload.get('refresh_token'),
             httponly=True,
             max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-            samesite="none",
-            secure=True
+            samesite="lax",
+            secure=False
         )
 
         return response
@@ -96,20 +96,20 @@ async def logout(response: Response) -> JSONResponse:
     response.delete_cookie(
         key="access_token",
         path="/",  # Ensure this matches the path used to set the cookie
-        samesite="none",
-        secure=True
+        samesite="lax",
+        secure=False
     )
     response.delete_cookie(
         key="refresh_token",
         path="/",
-        samesite="none",
-        secure=True
+        samesite="lax",
+        secure=False
     )
     response.delete_cookie(
         key="user_id",
         path="/",
-        samesite="none",
-        secure=True
+        samesite="lax",
+        secure=False
     )
     
     return response
@@ -117,9 +117,11 @@ async def logout(response: Response) -> JSONResponse:
 @app.post("/api/login")
 async def login_user_with_credentials(userObject: LoginDetails, response: Response) -> JSONResponse:
     try:
-        is_valid_user, user_id = auth.validate(userObject)
+        validation_result = auth.validate(userObject)
+        is_valid_user, user_id, is_admin = validation_result[0], validation_result[1], validation_result[2] if len(validation_result) > 2 else False
+        
         if is_valid_user:
-            user_data = {"sub": user_id}
+            user_data = {"sub": user_id, "is_admin": is_admin}
             access_token = auth.create_token(user_data, "access")
             refresh_token = auth.create_token(user_data, "refresh")
 
@@ -129,7 +131,10 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
             
             response = JSONResponse(
                 status_code = 200,
-                content = {"message": "Verified!"}
+                content = {
+                    "message": "Verified!",
+                    "admin_login": is_admin
+                }
             )
             
             response.set_cookie(
@@ -137,8 +142,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=access_token,
                 httponly=True,
                 max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
             )
 
             response.set_cookie(
@@ -146,8 +151,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=refresh_token,
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
             )
 
             response.set_cookie(
@@ -155,8 +160,17 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=user_id,
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="none",
-                secure=True
+                samesite="lax",
+                secure=False
+            )
+
+            response.set_cookie(
+                key="is_admin",
+                value="true" if is_admin else "false",
+                httponly=True,
+                max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
+                samesite="lax",
+                secure=False
             )
 
             return response
@@ -179,7 +193,11 @@ async def create_user_with_credentials(user: User) -> JSONResponse:
 async def manual_sync(status: dict = Depends(auth.authenticated_user)):
     """Trigger immediate sync from frontend"""
     try:
-        result = await sync_service.sync_all_data()
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        result = await sync_service.sync_all_data(user_id)
         return JSONResponse(status_code=200, content=result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -197,9 +215,13 @@ async def get_sync_status(status: dict = Depends(auth.authenticated_user)):
 
 @app.get("/api/get_local_accounts")
 async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
-    """Get accounts from local database"""
+    """Get accounts from local database for authenticated user"""
     try:
-        accounts = database.get_all_accounts()
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        accounts = database.get_all_accounts(user_id)
         if isinstance(accounts, dict) and "error" in accounts:
             raise HTTPException(status_code=500, detail=accounts["error"])
         return accounts
@@ -208,9 +230,13 @@ async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
 
 @app.get("/api/get_local_transactions")
 async def get_local_transactions(status: dict = Depends(auth.authenticated_user)):
-    """Get transactions from local database"""
+    """Get transactions from local database for authenticated user"""
     try:
-        transactions = database.get_all_transactions()
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        transactions = database.get_all_transactions(user_id)
         if isinstance(transactions, dict) and "error" in transactions:
             raise HTTPException(status_code=500, detail=transactions["error"])
         return transactions
@@ -222,5 +248,162 @@ async def get_vendor_categories(status: dict = Depends(auth.authenticated_user))
     """Get vendor categories list from VendorCategories class"""
     vendor_categories = VendorCategories.get_all()
     return vendor_categories
+
+@app.get("/api/get_current_user")
+async def get_current_user(status: dict = Depends(auth.authenticated_user)):
+    """Get current authenticated user's details"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        user = database.get_user_by_id(user_id)
+        if isinstance(user, dict) and "error" in user:
+            raise HTTPException(status_code=500, detail=user["error"])
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        return user
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/update_password")
+async def update_password(
+    password_data: dict,
+    status: dict = Depends(auth.authenticated_user)
+):
+    """Update user's password"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        current_password = password_data.get("current_password")
+        new_password = password_data.get("new_password")
+        
+        if not current_password or not new_password:
+            raise HTTPException(status_code=400, detail="Both current and new passwords are required")
+        
+        # Verify current password
+        user = database.get_user_by_id(user_id, include_password=True)
+        if not user or not auth.verify_pwd(current_password, user.get("password", "")):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        
+        # Hash new password and update
+        hashed_password = auth.hash_pwd(new_password)
+        result = database.update_user_password(user_id, hashed_password)
+        
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"message": "Password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/update_email")
+async def update_email(
+    email_data: dict,
+    status: dict = Depends(auth.authenticated_user)
+):
+    """Update user's email address"""
+    try:
+        user_id = status.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+        
+        new_email = email_data.get("new_email")
+        
+        if not new_email:
+            raise HTTPException(status_code=400, detail="New email address is required")
+        
+        # Basic email validation
+        if "@" not in new_email or "." not in new_email:
+            raise HTTPException(status_code=400, detail="Please enter a valid email address")
+        
+        # Update email
+        result = database.update_user_email(user_id, new_email)
+        
+        if isinstance(result, dict) and "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"message": "Email updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin-only endpoints
+@app.get("/api/admin/users")
+async def get_all_users(status: dict = Depends(auth.admin_required)):
+    """Get all users (admin only)"""
+    try:
+        users = database.get_all_users_admin()
+        return JSONResponse(status_code=200, content=users)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset_password")
+async def admin_reset_password(
+    reset_data: dict,
+    status: dict = Depends(auth.admin_required)
+):
+    """Reset any user's password (admin only)"""
+    try:
+        target_user = reset_data.get("username")
+        new_password = reset_data.get("new_password")
+        
+        if not target_user or not new_password:
+            raise HTTPException(status_code=400, detail="Username and new password are required")
+        
+        # Hash the new password
+        hashed_password = auth.hash_pwd(new_password)
+        
+        # Update password in database
+        success = database.admin_update_user_password(target_user, hashed_password)
+        if success:
+            return JSONResponse(status_code=200, content={
+                "message": f"Password reset successfully for user: {target_user}"
+            })
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/reset_demo_account")
+async def reset_demo_account(status: dict = Depends(auth.admin_required)):
+    """Reset demo account password and regenerate data (admin only)"""
+    try:
+        # Reset demo password
+        demo_password = "demo123"
+        hashed_password = auth.hash_pwd(demo_password)
+        
+        password_reset = database.admin_update_user_password("demo", hashed_password)
+        if not password_reset:
+            raise HTTPException(status_code=404, detail="Demo user not found")
+        
+        # Regenerate demo data
+        data_reset = database.reset_demo_data()
+        
+        return JSONResponse(status_code=200, content={
+            "message": "Demo account reset successfully",
+            "new_password": demo_password,
+            "data_regenerated": data_reset
+        })
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/user_stats")
+async def get_user_stats(status: dict = Depends(auth.admin_required)):
+    """Get user statistics (admin only)"""
+    try:
+        stats = database.get_user_statistics()
+        return JSONResponse(status_code=200, content=stats)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # python -m uvicorn app.main:app --reload

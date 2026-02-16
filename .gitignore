@@ -149,3 +149,4 @@ venv/
 *.njsproj
 *.sln
 *.sw?
+*.claude

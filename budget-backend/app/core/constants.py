@@ -3,13 +3,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # CORS
-ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN")
+ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*").split(",")
 
 # Auth/JWT
 SECRET_KEY = os.getenv("SECRET_KEY")
 REFRESH_TOKEN_EXPIRATION_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRATION_DAYS"))
 ACCESS_TOKEN_EXPIRATION_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRATION_MINUTES"))
 ALGORITHM = os.getenv("ALGORITHM")
+
+# Admin Configuration
+ADMIN_MASTER_PASSWORD = os.getenv("ADMIN_MASTER_PASSWORD")
 
 # Local Database
 LOCAL_DB_HOST = os.getenv("LOCAL_DB_HOST") 

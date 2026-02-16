@@ -1,49 +1,1102 @@
 <template>
-    <div class="home">
-        <div v-if="accounts?.data?.length">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Account Type</th>
-                        <th>Balance</th>
-                        <th>Last Updated</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="account in accounts.data">
-                        <td>{{ account["fields"]["Institution"] }}</td>
-                        <td>${{ account["fields"]["USD"] }}</td>
-                        <td>{{ account["fields"]["Last Successful Update"] }}</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="home flex flex-col">
+        <AlertBubble :alertText="message" :visible="showMessage" />
+        <section class="welcome-section">
+            <h1 class="welcome-message text-matcha-400">
+                Welcome {{ user?.first_name || 'User' }}!
+            </h1>
+        </section>
+        <section class="dashboard-header flex justify-between items-center">
+            <h2 class="text-matcha-400 font-semibold">Dashboard</h2>
+            <button @click="buttonClicked" class="sync-button bg-matcha-400 text-white rounded-sm cursor-pointer transition-opacity hover-opacity">Summon Accounts</button>
+        </section>
+        <section class="dashboard-views-section">
+            <div class="dashboard-views-controller flex flex-row justify-around bg-matcha-gray text-matcha-400 rounded-md">
+                <div 
+                    @click="setActiveTab('Overview')" 
+                    :class="{ 'active-controller': activeTab === 'Overview' }"
+                >
+                    Overview
+                </div>
+                <div 
+                    @click="setActiveTab('Quick Council')" 
+                    :class="{ 'active-controller': activeTab === 'Quick Council' }"
+                >
+                    Quick Council
+                </div>
+                <div 
+                    @click="setActiveTab('Recent Activity *')" 
+                    :class="{ 'active-controller': activeTab === 'Recent Activity *' }"
+                >
+                    Recent Activity *
+                </div>
+            </div>
+        </section>
+        <div v-if="accounts?.data?.length" class="content-container">
+            <!-- Overview -->
+            <div v-if="activeTab === 'Overview'" class="accounts-grid">
+                <section 
+                    v-for="account in accounts.data" 
+                    :key="account.id" 
+                    @click="navigateToTransactions(account)"
+                    class="account-section bg-matcha-light text-matcha-400 rounded-lg clickable-account"
+                >
+                <div class="account-info flex flex-col">
+                    <div class="account-name font-bold text-matcha-400">{{ account["fields"]["Institution"] }}</div>
+                    <div class="account-details flex">
+                        <span class="account-balance font-semibold">${{ account["fields"]["USD"] }}</span>
+                        <span class="account-updated text-matcha-700">{{ account["fields"]["Last Successful Update"] }}</span>
+                    </div>
+                </div>
+                </section>
+            </div>
+            <!-- Quick Council -->
+            <div v-if="activeTab === 'Quick Council'" class="analysis-container">
+                <div class="analysis-grid">
+                    <div class="account-picker bg-matcha-light rounded-lg">
+                        <h3 class="text-matcha-400 font-semibold">Pick your account</h3>
+                        <p class="account-explainer text-matcha-700">
+                            Pick an account from the dropdown to summon the last 5 transactions for that specific account.
+                        </p>
+                        <select 
+                            v-model="selectedAccountId" 
+                            @change="setSelectedAccountId(selectedAccountId)"
+                            class="account-select"
+                        >
+                            <option value="">Select an account...</option>
+                            <option 
+                                v-for="account in accounts.data" 
+                                :key="account.id"
+                                :value="account.id"
+                            >
+                                {{ account["fields"]["Institution"] }} - ${{ account["fields"]["USD"] }}
+                            </option>
+                        </select>
+                        
+                        <!-- Quick Council Charts -->
+                        <div v-if="selectedAccountId" class="quick-analysis-charts">
+                            <div v-if="isLoadingMetrics" class="loading-state">
+                                <div class="loading-spinner"></div>
+                                <span class="text-matcha-700">Calculating metrics...</span>
+                            </div>
+                            <template v-else>
+                                <div class="analysis-card">
+                                    <h4 class="text-matcha-400 font-medium flex items-center gap-2">
+                                        <span class="chart-icon">📊</span>
+                                        {{ getPreviousMonthName() }} Summary
+                                    </h4>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">💸 Total Spent:</span>
+                                        <div class="stat-value-container">
+                                            <span class="stat-value font-semibold text-red-600">${{ getPreviousMonthSpending().toFixed(2) }}</span>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill expense" :style="{ width: getSpendingPercentage() + '%' }"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">💰 Total Income:</span>
+                                        <div class="stat-value-container">
+                                            <span class="stat-value font-semibold text-green-600">${{ getPreviousMonthIncome().toFixed(2) }}</span>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill income" :style="{ width: getIncomePercentage() + '%' }"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">📈 Net Change:</span>
+                                        <span class="stat-value font-semibold" :class="getPreviousMonthNetChange() >= 0 ? 'text-green-600' : 'text-red-600'">
+                                            {{ getPreviousMonthNetChange() >= 0 ? '+' : '' }}${{ getPreviousMonthNetChange().toFixed(2) }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="analysis-card">
+                                    <h4 class="text-matcha-400 font-medium flex items-center gap-2">
+                                        <span class="chart-icon">🔍</span>
+                                        Activity Breakdown
+                                    </h4>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">📅 {{ getPreviousMonthName() }}:</span>
+                                        <span class="stat-value font-semibold text-matcha-400">{{ getPreviousMonthTransactionCount() }} transactions</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">📊 Average per day:</span>
+                                        <span class="stat-value font-semibold text-matcha-400">${{ getPreviousMonthAverageDaily().toFixed(2) }}</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">🔥 Largest expense:</span>
+                                        <span class="stat-value font-semibold text-red-600">${{ getPreviousMonthLargestExpense().toFixed(2) }}</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">🏪 Most frequent vendor:</span>
+                                        <span class="stat-value font-semibold text-matcha-400">{{ getMostFrequentVendor() }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="analysis-card">
+                                    <h4 class="text-matcha-400 font-medium flex items-center gap-2">
+                                        <span class="chart-icon">📈</span>
+                                        Spending Trends
+                                    </h4>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">📊 {{ getTwoMonthsAgoName() }} vs {{ getPreviousMonthName() }}:</span>
+                                        <span class="stat-value font-semibold" :class="getSpendingTrend() >= 0 ? 'text-red-600' : 'text-green-600'">
+                                            {{ getSpendingTrend() >= 0 ? '+' : '' }}{{ getSpendingTrend().toFixed(1) }}%
+                                        </span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label text-matcha-700">💳 Transaction frequency:</span>
+                                        <span class="stat-value font-semibold" :class="getTransactionTrend() >= 0 ? 'text-matcha-400' : 'text-red-600'">
+                                            {{ getTransactionTrend() >= 0 ? '+' : '' }}{{ getTransactionTrend().toFixed(1) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <div v-else class="select-account-hint text-matcha-700 text-center">
+                            Select an account above to see Quick Council insights
+                        </div>
+                    </div>
+                    
+                    <div class="transactions-display bg-matcha-light rounded-lg">
+                        <h3 class="text-matcha-400 font-semibold">5 Recent Transactions for {{ selectedAccount || "..." }}</h3>
+                        <div v-if="selectedAccountId && getRecentTransactions().length" class="transactions-list">
+                            <div 
+                                v-for="transaction in getRecentTransactions()" 
+                                :key="transaction.id"
+                                class="transaction-item"
+                            >
+                                <div class="transaction-info">
+                                    <div class="transaction-vendor font-medium text-matcha-400">{{ transaction.fields.Vendor || transaction.fields.Name }}</div>
+                                    <div class="transaction-date text-matcha-700">{{ transaction.fields.Date }}</div>
+                                    <div v-if="transaction.fields.Notes" class="transaction-notes text-matcha-600">{{ transaction.fields.Notes }}</div>
+                                </div>
+                                <div class="transaction-amount font-semibold" :class="transaction.fields.USD >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    ${{ Math.abs(transaction.fields.USD).toFixed(2) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else-if="selectedAccountId && !getRecentTransactions().length" class="no-transactions text-matcha-700 text-center">
+                            No recent transactions found for this account
+                        </div>
+                        <div v-else class="select-account-prompt text-matcha-700 text-center">
+                            Select an account to summon recent transactions
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div v-if="activeTab === 'Recent Activity *'" class="recent-activity-container">
+                <div class="recent-activity-content bg-matcha-light rounded-lg">
+                    <h3 class="text-matcha-400 font-semibold">Recent Activity</h3>
+                    <p class="activity-explainer text-matcha-700">
+                        Here are the last 5 transactions across all your accounts.
+                    </p>
+                    <div v-if="getAllRecentTransactions().length" class="transactions-list">
+                        <div 
+                            v-for="transaction in getAllRecentTransactions()" 
+                            :key="transaction.id"
+                            class="transaction-item"
+                        >
+                            <div class="transaction-info">
+                                <div class="transaction-vendor font-medium text-matcha-400">{{ transaction.fields.Vendor || transaction.fields.Name }}</div>
+                                <div class="transaction-meta-info">
+                                    <div class="transaction-date text-matcha-700">{{ transaction.fields.Date }}</div>
+                                    <div v-if="transaction.accountInfo" class="transaction-account text-matcha-600">
+                                        • {{ transaction.accountInfo.institution }}
+                                    </div>
+                                </div>
+                                <div v-if="transaction.fields.Notes" class="transaction-notes text-matcha-600">{{ transaction.fields.Notes }}</div>
+                            </div>
+                            <div class="transaction-amount font-semibold" :class="transaction.fields.USD >= 0 ? 'text-green-600' : 'text-red-600'">
+                                ${{ Math.abs(transaction.fields.USD).toFixed(2) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="no-transactions text-matcha-700 text-center">
+                        No recent transactions available. Click "Summon Accounts" to load data.
+                    </div>
+                </div>
+            </div>
         </div>
         <div v-else>
-            No accounts loaded yet (length: {{ accounts?.data?.length }})
+            <div class="no-accounts-section bg-matcha-light text-matcha-400 rounded-lg text-center">
+                <span>No accounts loaded yet</span>
+            </div>
         </div>
     </div>
-    <button @click="buttonClicked">Click this button</button>
 </template>
 
 <script lang="ts" setup>
+import { ref } from 'vue';
 import { useLocalStore } from '@/stores/localStorage';
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+import AlertBubble from '@/components/AlertBubble.vue';
+import { handleMessage, message, showMessage } from '../utils/utils';
 
 const localStore = useLocalStore();
-const { accounts } = storeToRefs(localStore);
-const { setAccounts } = localStore;
+const { accounts, transactions, user } = storeToRefs(localStore);
+const { setAccounts, setTransactions } = localStore;
+const router = useRouter();
+
+const activeTab = ref('Overview');
+const selectedAccountId = ref<string>('');
+const selectedAccount = ref<string>('');
+const isLoadingMetrics = ref(false);
+
+// Alert functionality handled by handleMessage utility
+
+const setActiveTab = (tabName: string) => {
+    activeTab.value = tabName;
+};
+
+const setSelectedAccountId = (accountId: string) => {
+    selectedAccountId.value = accountId;
+    if (accountId) {
+        isLoadingMetrics.value = true;
+        // Simulate brief loading time for UX
+        setTimeout(() => {
+            isLoadingMetrics.value = false;
+        }, 500);
+    }
+};
+
+const setSelectedAccount = (account: string) => {
+    selectedAccount.value = account;
+};
+
+// Get recent transactions for selected account (last 5, newest first)
+const getRecentTransactions = () => {
+    if (!selectedAccountId.value || !transactions.value?.data || !accounts.value?.data) return [];
+    
+    // Find the selected account to get its Plaid Account ID
+    const selectedAccount = accounts.value.data.find(account => account.id === selectedAccountId.value);
+    if (!selectedAccount) return [];
+    setSelectedAccount(selectedAccount.fields["Institution"]);
+    const plaidAccountId = selectedAccount.fields["Plaid Account ID"];
+    
+    // Filter transactions by matching account ID
+    const filtered = transactions.value.data
+        .filter(transaction => {
+            return transaction.fields["Account ID"] === plaidAccountId;
+        });
+    
+    // Sort by date (newest first) and take first 5
+    return filtered
+        .sort((a, b) => {
+            const dateA = new Date(a.fields.Date);
+            const dateB = new Date(b.fields.Date);
+            return dateB.getTime() - dateA.getTime(); // Newest first
+        })
+        .slice(0, 5); // Take first 5 (newest)
+};
+
+// Get previous month name for display (1 month ago)
+const getPreviousMonthName = () => {
+    const now = new Date();
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return previousMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+
+// Get two months ago name for comparison
+const getTwoMonthsAgoName = () => {
+    const now = new Date();
+    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    return twoMonthsAgo.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+
+// Get previous month spending for selected account
+const getPreviousMonthSpending = () => {
+    const previousMonthTransactions = getPreviousMonthTransactions();
+    return previousMonthTransactions
+        .filter(t => t.fields.USD < 0)
+        .reduce((sum, t) => sum + Math.abs(t.fields.USD), 0);
+};
+
+// Get previous month income for selected account  
+const getPreviousMonthIncome = () => {
+    const previousMonthTransactions = getPreviousMonthTransactions();
+    return previousMonthTransactions
+        .filter(t => t.fields.USD > 0)
+        .reduce((sum, t) => sum + t.fields.USD, 0);
+};
+
+// Get net change for previous month
+const getPreviousMonthNetChange = () => {
+    return getPreviousMonthIncome() - getPreviousMonthSpending();
+};
+
+// Get transaction count for previous month
+const getPreviousMonthTransactionCount = () => {
+    return getPreviousMonthTransactions().length;
+};
+
+// Get average daily spending for previous month
+const getPreviousMonthAverageDaily = () => {
+    const spending = getPreviousMonthSpending();
+    const now = new Date();
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1); // 1 month ago
+    const daysInPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0).getDate();
+    return spending / daysInPreviousMonth;
+};
+
+// Get most frequent vendor from previous month
+const getMostFrequentVendor = () => {
+    const previousMonthTransactions = getPreviousMonthTransactions();
+    if (previousMonthTransactions.length === 0) return 'N/A';
+    
+    const vendorCounts: Record<string, number> = {};
+    previousMonthTransactions.forEach(transaction => {
+        const vendor = transaction.fields.Vendor || transaction.fields.Name || 'Unknown';
+        vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
+    });
+    
+    const mostFrequent = Object.entries(vendorCounts)
+        .sort(([,a], [,b]) => b - a)[0];
+    
+    return mostFrequent ? mostFrequent[0] : 'N/A';
+};
+
+// Get spending trend percentage (comparing two months ago to previous month)
+const getSpendingTrend = () => {
+    const twoMonthsAgoTransactions = getTwoMonthsAgoTransactions();
+    const previousMonthTransactions = getPreviousMonthTransactions();
+    
+    const twoMonthsAgoSpending = twoMonthsAgoTransactions
+        .filter(t => t.fields.USD < 0)
+        .reduce((sum, t) => sum + Math.abs(t.fields.USD), 0);
+    
+    const previousMonthSpending = previousMonthTransactions
+        .filter(t => t.fields.USD < 0)
+        .reduce((sum, t) => sum + Math.abs(t.fields.USD), 0);
+    
+    if (twoMonthsAgoSpending === 0) return 0;
+    
+    return ((previousMonthSpending - twoMonthsAgoSpending) / twoMonthsAgoSpending) * 100;
+};
+
+// Get transaction frequency trend
+const getTransactionTrend = () => {
+    const twoMonthsAgoCount = getTwoMonthsAgoTransactions().length;
+    const previousMonthCount = getPreviousMonthTransactions().length;
+    
+    if (twoMonthsAgoCount === 0) return 0;
+    
+    return ((previousMonthCount - twoMonthsAgoCount) / twoMonthsAgoCount) * 100;
+};
+
+// Get spending percentage for progress bar
+const getSpendingPercentage = () => {
+    const spending = getPreviousMonthSpending();
+    const income = getPreviousMonthIncome();
+    const total = spending + income;
+    return total > 0 ? (spending / total) * 100 : 0;
+};
+
+// Get income percentage for progress bar
+const getIncomePercentage = () => {
+    const spending = getPreviousMonthSpending();
+    const income = getPreviousMonthIncome();
+    const total = spending + income;
+    return total > 0 ? (income / total) * 100 : 0;
+};
+
+// Get largest expense in previous month
+const getPreviousMonthLargestExpense = () => {
+    const previousMonthTransactions = getPreviousMonthTransactions();
+    const expenses = previousMonthTransactions.filter(t => t.fields.USD < 0);
+    if (expenses.length === 0) return 0;
+    return Math.max(...expenses.map(t => Math.abs(t.fields.USD)));
+};
+
+// Helper: Get all transactions for previous month for selected account (1 month ago)
+const getPreviousMonthTransactions = () => {
+    if (!selectedAccountId.value || !transactions.value?.data || !accounts.value?.data) return [];
+    
+    const selectedAccount = accounts.value.data.find(account => account.id === selectedAccountId.value);
+    if (!selectedAccount) return [];
+    
+    const plaidAccountId = selectedAccount.fields["Plaid Account ID"];
+    const now = new Date();
+    const previousMonth = now.getMonth() - 1; // 1 month ago
+    const previousYear = previousMonth < 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const adjustedMonth = previousMonth < 0 ? 11 : previousMonth;
+    
+    return transactions.value.data
+        .filter(transaction => {
+            const transactionDate = new Date(transaction.fields.Date);
+            return transaction.fields["Account ID"] === plaidAccountId &&
+                   transactionDate.getMonth() === adjustedMonth &&
+                   transactionDate.getFullYear() === previousYear;
+        });
+};
+
+// Helper: Get all transactions for two months ago for comparison
+const getTwoMonthsAgoTransactions = () => {
+    if (!selectedAccountId.value || !transactions.value?.data || !accounts.value?.data) return [];
+    
+    const selectedAccount = accounts.value.data.find(account => account.id === selectedAccountId.value);
+    if (!selectedAccount) return [];
+    
+    const plaidAccountId = selectedAccount.fields["Plaid Account ID"];
+    const now = new Date();
+    const twoMonthsAgo = now.getMonth() - 2; // 2 months ago
+    const twoMonthsAgoYear = twoMonthsAgo < 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const adjustedMonth = twoMonthsAgo < 0 ? 12 + twoMonthsAgo : twoMonthsAgo;
+    
+    return transactions.value.data
+        .filter(transaction => {
+            const transactionDate = new Date(transaction.fields.Date);
+            return transaction.fields["Account ID"] === plaidAccountId &&
+                   transactionDate.getMonth() === adjustedMonth &&
+                   transactionDate.getFullYear() === twoMonthsAgoYear;
+        });
+};
+
+// Get recent transactions across all accounts (last 5, newest first) with account info
+const getAllRecentTransactions = () => {
+    if (!transactions.value?.data || !accounts.value?.data) return [];
+    
+    // Sort all transactions by date (newest first) and take first 5
+    const recentTransactions = transactions.value.data
+        .sort((a, b) => {
+            const dateA = new Date(a.fields.Date);
+            const dateB = new Date(b.fields.Date);
+            return dateB.getTime() - dateA.getTime(); // Newest first
+        })
+        .slice(0, 5); // Take first 5 (newest)
+    
+    // Enrich transactions with account information
+    return recentTransactions.map(transaction => {
+        const account = accounts.value.data.find(acc => 
+            acc.fields["Plaid Account ID"] === transaction.fields["Account ID"]
+        );
+        
+        return {
+            ...transaction,
+            accountInfo: account ? {
+                institution: account.fields.Institution,
+                id: account.fields["Plaid Account ID"]
+            } : null
+        };
+    });
+};
+
+// Navigate to transactions page with selected account
+const navigateToTransactions = (account: any) => {
+    router.push({
+        name: 'Transactions',
+        query: { accountId: account.id }
+    });
+};
 
 const buttonClicked = async () => {
     try {
-        const response = await axios.get(`/api/get_local_accounts`);
-        setAccounts({ data: response.data });
+        const accResponse = await axios.get(`/api/get_local_accounts`);
+        setAccounts({ data: accResponse.data });
+        const tranResponse = await axios.get(`/api/get_local_transactions`);
+        setTransactions({ data: tranResponse.data });
     } catch (error) {
         console.error("Error fetching accounts:", error);
+        let errorMessage = 'Failed to fetch accounts';
+        if (axios.isAxiosError(error)) {
+            errorMessage = error.response?.data?.detail || error.message;
+        }
+        handleMessage(errorMessage);
     };
 };
 </script>
 
-<style scoped lang="scss">
+<style scoped>
+
+.welcome-section {
+    margin: 20px 0 10px 0;
+    text-align: center;
+}
+
+.welcome-message {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 600;
+}
+
+.dashboard-views-section {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.dashboard-views-controller {
+    display: flex;
+    flex-direction: row;
+    width: fit-content;
+    min-width: 300px;
+    max-width: 80%;
+    justify-content: center;
+    align-items: center;
+    background: rgb(239, 239, 239);
+    color: rgb(107 155 79);
+    border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
+}
+
+.dashboard-views-controller > * {
+    padding: 15px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-align: center;
+    border: 2px solid rgba(107, 155, 79, 0.2);
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(107, 155, 79, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    color: rgb(107, 155, 79);
+}
+
+/* Dark mode for dashboard view controllers */
+html.dark .dashboard-views-controller {
+    background: rgb(50, 50, 50);
+}
+
+html.dark .dashboard-views-controller > * {
+    background: rgba(60, 60, 60, 0.8);
+    border-color: rgba(139, 185, 111, 0.3);
+    color: rgb(220, 220, 220);
+    box-shadow: 0 1px 3px rgba(139, 185, 111, 0.1);
+}
+
+html.dark .dashboard-views-controller > *:hover {
+    background: rgba(139, 185, 111, 0.2);
+    border-color: rgba(139, 185, 111, 0.4);
+    color: rgb(240, 240, 240);
+}
+
+.dashboard-views-controller > *:hover {
+    background: rgba(107, 155, 79, 0.1);
+    border-color: rgba(107, 155, 79, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(107, 155, 79, 0.15);
+}
+
+.active-controller {
+    background: rgb(107 155 79) !important;
+    color: white !important;
+    border-color: rgb(107 155 79) !important;
+    box-shadow: 0 8px 25px rgba(107, 155, 79, 0.5) !important;
+    transform: translateY(-8px) !important;
+    font-weight: 600 !important;
+    z-index: 10;
+    position: relative;
+}
+
+.dashboard-header {
+    margin: 20px 0;
+}
+
+.dashboard-header h2 {
+    margin: 0;
+    font-size: 38px;
+}
+
+.accounts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.full-width-container {
+    width: 100%;
+}
+
+.full-width-container .accounts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.account-section {
+    padding: 20px;
+}
+
+.clickable-account {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clickable-account:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(107, 155, 79, 0.2);
+}
+
+.account-info {
+    gap: 8px;
+}
+
+.account-name {
+    font-size: 24px;
+}
+
+.account-details {
+    gap: 30px;
+    font-size: 16px;
+}
+
+
+
+.no-accounts-section {
+    padding: 20px;
+}
+
+.sync-button {
+    border: none;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: white !important;
+    background-color: rgb(107, 155, 79) !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+
+/* Responsive Design for Dashboard Views Controller */
+@media (max-width: 1024px) {
+    .dashboard-views-controller {
+        max-width: 90%;
+        min-width: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    .welcome-message {
+        font-size: 28px;
+    }
+    
+    .dashboard-header h2 {
+        font-size: 32px;
+    }
+    
+    .dashboard-views-controller {
+        max-width: 98%;
+        min-width: 250px;
+        width: 98%;
+        margin: 0 auto;
+    }
+    
+    .dashboard-views-controller > * {
+        padding: 17px 12px;
+        font-size: 18px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .account-name {
+        font-size: 20px;
+    }
+    
+    .account-details {
+        gap: 20px;
+        font-size: 15px;
+    }
+    
+    .sync-button {
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+}
+
+/* Analysis Section Styles */
+.analysis-container {
+    width: 100%;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: 30% 70%;
+    gap: 20px;
+    width: 100%;
+}
+
+.account-picker,
+.transactions-display {
+    padding: 20px;
+}
+
+.account-picker h3,
+.transactions-display h3,
+.recent-activity-content h3 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+}
+
+.account-explainer,
+.activity-explainer {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.recent-activity-container {
+    width: 100%;
+}
+
+.recent-activity-content {
+    padding: 20px;
+}
+
+.quick-analysis-charts {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.analysis-card {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid rgb(107 155 79);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Dark mode for analysis cards */
+html.dark .analysis-card {
+    background-color: var(--bg-secondary) !important;
+    border-left-color: rgb(139, 185, 111);
+}
+
+.analysis-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.stat-row:last-child {
+    margin-bottom: 0;
+}
+
+.stat-label {
+    font-size: 14px;
+}
+
+.stat-value {
+    font-size: 14px;
+}
+
+.select-account-hint {
+    margin-top: 40px;
+    padding: 20px;
+    font-style: italic;
+}
+
+.account-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgb(107 155 79);
+    border-radius: 8px;
+    background: white;
+    color: rgb(107 155 79);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.account-select:focus {
+    outline: none;
+    border-color: rgb(107 155 79);
+    box-shadow: 0 0 0 3px rgba(107, 155, 79, 0.1);
+}
+
+html.dark .account-select {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: rgb(139, 185, 111);
+}
+
+html.dark .account-select:focus {
+    border-color: rgb(139, 185, 111);
+    box-shadow: 0 0 0 3px rgba(139, 185, 111, 0.1);
+}
+
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid rgb(107 155 79);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Dark mode for transaction items */
+html.dark .transaction-item {
+    background-color: var(--bg-secondary) !important;
+    border-left-color: rgb(139, 185, 111);
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.transaction-vendor {
+    font-size: 14px;
+}
+
+.transaction-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.transaction-date {
+    font-size: 12px;
+}
+
+.transaction-account {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.transaction-notes {
+    font-size: 11px;
+    font-style: italic;
+}
+
+.transaction-amount {
+    font-size: 16px;
+}
+
+.text-green-600 {
+    color: #16a34a;
+}
+
+.text-red-600 {
+    color: #dc2626;
+}
+
+.no-transactions,
+.select-account-prompt {
+    padding: 40px 20px;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .analysis-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+/* Loading State Styles */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 15px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(107, 155, 79, 0.3);
+    border-top: 3px solid rgb(107, 155, 79);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+html.dark .loading-spinner {
+    border: 3px solid rgba(139, 185, 111, 0.3);
+    border-top: 3px solid rgb(139, 185, 111);
+}
+
+/* Progress Bar Styles */
+.stat-value-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.progress-bar {
+    width: 80px;
+    height: 4px;
+    background-color: rgba(107, 155, 79, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.progress-fill.expense {
+    background-color: #dc2626;
+}
+
+.progress-fill.income {
+    background-color: #16a34a;
+}
+
+html.dark .progress-bar {
+    background-color: rgba(139, 185, 111, 0.2);
+}
+
+/* Icon Styles */
+.chart-icon {
+    font-size: 16px;
+}
+
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+@media (max-width: 600px) {
+    .welcome-message {
+        font-size: 24px;
+    }
+    
+    .dashboard-header h2 {
+        font-size: 28px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+        margin: 15px 0;
+    }
+    
+    .dashboard-views-controller {
+        max-width: 98%;
+        min-width: 200px;
+        width: 98%;
+        margin: 0 auto;
+    }
+    
+    .dashboard-views-controller > * {
+        padding: 12px 6px;
+        font-size: 14px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .accounts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .account-section {
+        padding: 15px;
+    }
+    
+    .account-name {
+        font-size: 18px;
+    }
+    
+    .account-details {
+        gap: 15px;
+        font-size: 14px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .sync-button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 390px) {
+    .welcome-message {
+        font-size: 24px;
+    }
+    
+    .dashboard-header h2 {
+        font-size: 28px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+        margin: 15px 0;
+    }
+    
+    .dashboard-views-controller {
+        max-width: 98%;
+        min-width: 200px;
+        width: 98%;
+        margin: 0 auto;
+    }
+    
+    .dashboard-views-controller > * {
+        padding: 12px 6px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .accounts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .account-section {
+        padding: 15px;
+    }
+    
+    .account-name {
+        font-size: 18px;
+    }
+    
+    .account-details {
+        gap: 15px;
+        font-size: 14px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .sync-button {
+        width: 100%;
+        text-align: center;
+    }
+}
 </style>

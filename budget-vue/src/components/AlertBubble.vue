@@ -23,31 +23,37 @@ const props = defineProps({
 }
 
 aside {
-    position: absolute;
-    transform: translate(135%, -70%);
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
     text-align: center;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 10px;
-    font-size: 25px;
-    width: 400px;
-    height: 100px;
-    background: #ffabe4;
-    box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.3);
-    border-radius: 25px;
-    animation: borderAnimation 1s linear infinite;
+    padding: 15px 25px;
+    font-size: 16px;
+    max-width: 500px;
+    min-height: 60px;
+    background: rgb(107, 155, 79);
+    color: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    opacity: 1;
 }
 
-@keyframes borderAnimation {
-    0% {
-        border: 3px solid transparent;
-    }
-    50% {
-        border: 3px solid blue;
-    }
-    100% {
-        border: 3px solid transparent;
-    }
+html.dark aside {
+    background: rgb(139, 185, 111);
+    color: white;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+.hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+    visibility: hidden;
 }
 </style>

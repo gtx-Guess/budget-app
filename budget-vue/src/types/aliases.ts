@@ -4,13 +4,19 @@
 
 
 //Definitions**************************
+/**
+ * Model/Type Dfeinitions
+ */
+
+
+//Definitions**************************
 interface TransactionFields {
     "USD": number;
     "Notes": string;
     "Date": string;
     "Vendor": string;
     "Name": string;
-    "Account_ID": string;
+    "Account ID": string;
 }
 interface Transaction {
     id: string;
@@ -21,7 +27,7 @@ interface AccountFields {
     "USD": number;
     "Institution": string;
     "Last Successful Update": string;
-    "Account_ID": string;
+    "Plaid Account ID": string;
 }
 interface Account {
     id: string;

@@ -29,6 +29,24 @@ class AirtableSyncService:
             LOG.error(f"Database connection error: {e}")
             return None
 
+    def is_demo_user(self, user_id: str) -> bool:
+        """Check if user is a demo user"""
+        connection = self.get_db_connection()
+        if not connection:
+            return False
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute("SELECT user_name FROM `budget-app-user` WHERE id = %s", (user_id,))
+            result = cursor.fetchone()
+            return result and result[0] == 'demo'
+        except pymysql.MySQLError as e:
+            LOG.error(f"Database error checking demo user: {e}")
+            return False
+        finally:
+            if connection:
+                connection.close()
+
     async def start_background_sync(self):
         """Start the background sync task"""
         LOG.info("Starting background sync service...")
@@ -50,8 +68,17 @@ class AirtableSyncService:
             return True
         return datetime.now() - self.last_sync > timedelta(hours=24)
 
-    async def sync_all_data(self) -> Dict[str, Any]:
+    async def sync_all_data(self, user_id: str = None) -> Dict[str, Any]:
         """Sync both accounts and transactions, then cleanup if needed"""
+        # Skip Airtable sync for demo users
+        if user_id and self.is_demo_user(user_id):
+            LOG.info(f"Skipping Airtable sync for demo user: {user_id}")
+            return {
+                "accounts": {"status": "skipped", "reason": "demo_user"},
+                "transactions": {"status": "skipped", "reason": "demo_user"},
+                "cleanup": {"status": "skipped", "reason": "demo_user"}
+            }
+        
         results = {
             "accounts": await self.sync_accounts(),
             "transactions": await self.sync_transactions(),
@@ -204,23 +231,29 @@ class AirtableSyncService:
                 parsed_date = None
         
         query = """
-            INSERT INTO accounts (airtable_id, institution, usd, last_successful_update, plaid_account_id)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO accounts (airtable_id, institution, usd, last_successful_update, plaid_account_id, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             institution = VALUES(institution),
             usd = VALUES(usd),
             last_successful_update = VALUES(last_successful_update),
             plaid_account_id = VALUES(plaid_account_id),
+            user_id = VALUES(user_id),
             updated_at = CURRENT_TIMESTAMP
         """
         
         try:
+            # For now, assign all accounts to user ID 1 (your test user)
+            # TODO: In the future, you'll want to determine user_id based on authentication
+            default_user_id = 1
+            
             cursor.execute(query, (
                 record['id'],
                 fields.get('Institution'),
                 fields.get('USD'),
                 parsed_date,
-                fields.get('Plaid Account ID')
+                fields.get('Plaid Account ID'),
+                default_user_id
             ))
             
             return cursor.rowcount
@@ -236,14 +269,16 @@ class AirtableSyncService:
         query = """
             INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes, account_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO transactions (airtable_id, name, usd, date, vendor, notes, account_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
             name = VALUES(name),
             usd = VALUES(usd),
             date = VALUES(date),
             vendor = VALUES(vendor),
             notes = VALUES(notes),
-            updated_at = CURRENT_TIMESTAMP,
-            account_id = VALUES(account_id)
+            account_id = VALUES(account_id),
+            updated_at = CURRENT_TIMESTAMP
         """
         
         cursor.execute(query, (
@@ -252,6 +287,8 @@ class AirtableSyncService:
             fields.get('USD'),
             fields.get('Date'),
             fields.get('Vendor'),
+            fields.get('Notes'),
+            fields.get('Account ID')
             fields.get('Notes'),
             fields.get('Account ID')
         ))

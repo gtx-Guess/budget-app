@@ -76,6 +76,9 @@ const createAccount = async () => {
     justify-content: center;
     margin-top: 150px;
     width: 100%;
+    min-height: 100vh;
+    background: var(--bg-primary);
+    transition: background-color 0.3s ease;
 }
 
 .outer-box {
@@ -87,8 +90,16 @@ const createAccount = async () => {
     padding: 10px;
     border-radius: 20px;
     height: 400px;
-    background: rgba(255, 255, 255, 0.16);
-    box-shadow: 2px 2px 24px rgb(255, 255, 255);
+    background: var(--bg-tertiary-ov);
+    box-shadow: 2px 2px 24px rgba(107, 155, 79, 0.3);
+    border: 2px solid rgb(107, 155, 79);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+html.dark .outer-box {
+    background: var(--bg-secondary);
+    box-shadow: 2px 2px 24px rgba(139, 185, 111, 0.3);
+    border: 2px solid rgb(139, 185, 111);
 }
 
 .create-box {
@@ -99,31 +110,85 @@ const createAccount = async () => {
     width: 200px;
     height: 320px;
 }
+
 .create-box > section {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     height: 100px;
-}
-
-.create-box > section > input,
-.create-box > section > button {
-    padding: 0;
-    text-align: center;
-    border-radius: 10px;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-.create-box > section > button {
-    font-size: 20pt;
-    width: 240px;
+    gap: 15px;
 }
 
 .create-box > section > input {
+    padding: 10px;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
     height: 35px;
     width: 300px;
     font-size: 18pt;
+}
+
+html.dark .create-box > section > input {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.1);
+}
+
+.create-box > section > button {
+    padding: 10px;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgb(107, 155, 79);
+    background: rgb(154 178 145) !important;
+    color: #ffffff !important;
+    transition: all 0.3s ease;
+    font-size: 20pt;
+    width: 240px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.create-box > section > button:hover {
+    background: rgb(85, 125, 62) !important;
+    transform: translateY(-2px);
+}
+
+html.dark .create-box > section > button {
+    background: rgb(95 114 83) !important;
+    color: #ffffff !important;
+    border: 1px solid rgb(139, 185, 111);
+    box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.1);
+}
+
+html.dark .create-box > section > button:hover {
+    background: rgb(120, 165, 95) !important;
+}
+
+.create-box > section > input:focus {
+    outline: none;
+    border-color: rgb(107, 155, 79);
+    box-shadow: 0 0 0 2px rgba(107, 155, 79, 0.3);
+}
+
+html.dark .create-box > section > input:focus {
+    border-color: rgb(139, 185, 111);
+    box-shadow: 0 0 0 2px rgba(139, 185, 111, 0.3);
+}
+
+.create-box > section > input::placeholder {
+    color: var(--text-secondary);
+}
+
+html.dark .create-box > section > input::placeholder {
+    color: var(--text-secondary);
 }
 
 </style>
