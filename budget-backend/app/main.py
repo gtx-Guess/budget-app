@@ -1,6 +1,12 @@
 import app.services.auth_service as auth
 import app.core.database as database
 import asyncio
+import re
+
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+
+def _valid_email(email: str) -> bool:
+    return bool(_EMAIL_RE.match(email))
 
 from app.core.logger import LOG
 from app.models.schemas import *
@@ -46,8 +52,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGIN,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 @app.post("/api/authenticated")
@@ -95,7 +101,8 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
         return response
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/logout")
 @limiter.limit("10/minute")
@@ -136,6 +143,7 @@ async def login_user_with_credentials(request: Request, userObject: LoginDetails
         is_valid_user, user_id, is_admin = validation_result[0], validation_result[1], validation_result[2] if len(validation_result) > 2 else False
 
         if is_valid_user:
+            LOG.info(f"AUDIT login_success user_id={user_id} ip={request.client.host}")
             user_data = {"sub": user_id, "is_admin": is_admin}
             access_token = auth.create_token(user_data, "access")
             refresh_token = auth.create_token(user_data, "refresh")
@@ -190,20 +198,31 @@ async def login_user_with_credentials(request: Request, userObject: LoginDetails
 
             return response
         else:
+            LOG.warning(f"AUDIT login_failure username={userObject.user} ip={request.client.host}")
             return JSONResponse(status_code=404, content={"message": "Could not verify user/password combination!"})
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post('/api/create_user')
 @limiter.limit("3/minute")
 async def create_user_with_credentials(request: Request, user: User) -> JSONResponse:
     try:
+        if len(user.password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+        if not _valid_email(user.email_address):
+            raise HTTPException(status_code=400, detail="Please enter a valid email address")
+        if database.username_or_email_exists(user.user_name, user.email_address):
+            raise HTTPException(status_code=409, detail="Username or email already in use")
         response = database.create_user(user, auth.hash_pwd(user.password))
         if response == 200:
             return JSONResponse(status_code=200, content={"message": "User created successfully!"})
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
     
 @app.post("/api/manual_sync")
 @limiter.limit("3/minute")
@@ -217,7 +236,8 @@ async def manual_sync(request: Request, status: dict = Depends(auth.authenticate
         result = await sync_service.sync_all_data(user_id)
         return JSONResponse(status_code=200, content=result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/sync_status")
 @limiter.limit("30/minute")
@@ -248,7 +268,8 @@ async def get_sync_status(request: Request, status: dict = Depends(auth.authenti
             "is_running": sync_service.is_running
         })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/get_local_accounts")
 @limiter.limit("30/minute")
@@ -264,7 +285,8 @@ async def get_local_accounts(request: Request, status: dict = Depends(auth.authe
             raise HTTPException(status_code=500, detail=accounts["error"])
         return accounts
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/get_local_transactions")
 @limiter.limit("30/minute")
@@ -280,7 +302,8 @@ async def get_local_transactions(request: Request, status: dict = Depends(auth.a
             raise HTTPException(status_code=500, detail=transactions["error"])
         return transactions
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/get_current_user")
 @limiter.limit("30/minute")
@@ -300,7 +323,8 @@ async def get_current_user(request: Request, status: dict = Depends(auth.authent
             
         return user
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/update_password")
 @limiter.limit("5/minute")
@@ -320,6 +344,8 @@ async def update_password(
         
         if not current_password or not new_password:
             raise HTTPException(status_code=400, detail="Both current and new passwords are required")
+        if len(new_password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
         
         # Verify current password
         user = database.get_user_by_id(user_id, include_password=True)
@@ -329,6 +355,7 @@ async def update_password(
         # Hash new password and update
         hashed_password = auth.hash_pwd(new_password)
         result = database.update_user_password(user_id, hashed_password)
+        LOG.info(f"AUDIT password_changed user_id={user_id} ip={request.client.host}")
         
         if isinstance(result, dict) and "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
@@ -337,7 +364,8 @@ async def update_password(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/update_email")
 @limiter.limit("5/minute")
@@ -357,8 +385,7 @@ async def update_email(
         if not new_email:
             raise HTTPException(status_code=400, detail="New email address is required")
         
-        # Basic email validation
-        if "@" not in new_email or "." not in new_email:
+        if not _valid_email(new_email):
             raise HTTPException(status_code=400, detail="Please enter a valid email address")
         
         # Update email
@@ -371,7 +398,8 @@ async def update_email(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 # Admin-only endpoints
 @app.get("/api/admin/users")
@@ -382,7 +410,8 @@ async def get_all_users(request: Request, status: dict = Depends(auth.admin_requ
         users = database.get_all_users_admin()
         return JSONResponse(status_code=200, content=users)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/admin/reset_password")
 @limiter.limit("5/minute")
@@ -405,6 +434,7 @@ async def admin_reset_password(
         # Update password in database
         success = database.admin_update_user_password(target_user, hashed_password)
         if success:
+            LOG.info(f"AUDIT admin_reset_password admin_id={status.get('user_id')} target={target_user} ip={request.client.host}")
             return JSONResponse(status_code=200, content={
                 "message": f"Password reset successfully for user: {target_user}"
             })
@@ -412,7 +442,8 @@ async def admin_reset_password(
             raise HTTPException(status_code=404, detail="User not found")
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/api/admin/reset_demo_account")
 @limiter.limit("2/minute")
@@ -429,15 +460,16 @@ async def reset_demo_account(request: Request, status: dict = Depends(auth.admin
         
         # Regenerate demo data
         data_reset = database.reset_demo_data()
-        
+        LOG.info(f"AUDIT admin_reset_demo admin_id={status.get('user_id')} ip={request.client.host}")
+
         return JSONResponse(status_code=200, content={
             "message": "Demo account reset successfully",
-            "new_password": demo_password,
             "data_regenerated": data_reset
         })
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/api/admin/user_stats")
 @limiter.limit("10/minute")
@@ -447,6 +479,7 @@ async def get_user_stats(request: Request, status: dict = Depends(auth.admin_req
         stats = database.get_user_statistics()
         return JSONResponse(status_code=200, content=stats)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        LOG.error(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 # python -m uvicorn app.main:app --reload

@@ -8,13 +8,9 @@ CREATE TABLE IF NOT EXISTS `budget-app-user` (
     email_address VARCHAR(500),
     `password` VARCHAR(500),
     pld_public_token VARCHAR(500),
-    refresh_token VARCHAR(1000)
+    refresh_token VARCHAR(1000),
+    is_admin TINYINT(1) NOT NULL DEFAULT 0
 );
-
--- Add missing columns if they don't exist (for existing databases)
-ALTER TABLE `budget-app-user` 
-ADD COLUMN IF NOT EXISTS first_name VARCHAR(255) AFTER user_name,
-ADD COLUMN IF NOT EXISTS last_name VARCHAR(255) AFTER first_name;
 
 -- Accounts table
 CREATE TABLE IF NOT EXISTS accounts (
@@ -29,10 +25,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     user_id INT NOT NULL DEFAULT 1,
     FOREIGN KEY (user_id) REFERENCES `budget-app-user`(id)
 );
-
--- Add user_id column to accounts table if it doesn't exist (for existing databases)
-ALTER TABLE accounts 
-ADD COLUMN IF NOT EXISTS user_id INT NOT NULL DEFAULT 1 AFTER plaid_account_id;
 
 -- Transactions table  
 CREATE TABLE IF NOT EXISTS transactions (
@@ -58,8 +50,6 @@ CREATE TABLE IF NOT EXISTS sync_log (
     status VARCHAR(20) DEFAULT 'running',
     error_message TEXT
 );
-
--- Add is_admin column (idempotent via ON DUPLICATE KEY on the INSERT below)
 
 -- Insert initial Tiko user (password: hashed version of your actual password)
 INSERT INTO `budget-app-user` (id, user_name, first_name, last_name, email_address, password, is_admin) VALUES

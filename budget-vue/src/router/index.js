@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { ref } from "vue";
 import HomeView from "@/views/HomeView.vue";
 import Analytics from "@/views/Analytics.vue";
 import LoginView from "@/views/Login.vue";
@@ -6,6 +7,8 @@ import CreateUserView from "@/views/CreateUser.vue";
 import ProfileView from "@/views/Profile.vue";
 import TransactionsView from "@/views/Transactions.vue";
 import axios from "axios";
+
+export const authLoading = ref(false);
 
 const routes = [
     {
@@ -59,6 +62,7 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresAuth) {
+        authLoading.value = true;
         try {
             const resp = await axios.post('/api/authenticated');
             if (resp.data.status === 200) {
@@ -68,6 +72,8 @@ router.beforeEach(async (to, from, next) => {
             }
         } catch (error) {
             next("/login");
+        } finally {
+            authLoading.value = false;
         }
     } else {
         next();

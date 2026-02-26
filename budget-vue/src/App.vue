@@ -32,7 +32,10 @@
             </nav>
         </header>
         <main class="base-margins-width">
-            <router-view />
+            <div v-if="authLoading" class="auth-loading">
+                <div class="auth-spinner"></div>
+            </div>
+            <router-view v-else />
         </main>
     </div>
 </template>
@@ -40,6 +43,7 @@
 <script lang="ts" setup>
 import { RouterLink } from 'vue-router';
 import axios from 'axios';
+import { authLoading } from '@/router/index.js';
 
 const logout = async () => {
     await axios.post(`/api/logout`, {}, {
@@ -171,6 +175,26 @@ nav {
 body {
     margin: 0;
     padding: 0;
+}
+
+.auth-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.auth-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(107, 155, 79, 0.2);
+    border-top-color: rgb(107, 155, 79);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 header.border-matcha {
