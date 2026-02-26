@@ -1,25 +1,39 @@
 import pymysql
+from dbutils.pooled_db import PooledDB
 
 from app.core.logger import LOG
 from app.models.schemas import User
 from app.core.constants import LOCAL_DB_HOST, LOCAL_DB_USER, LOCAL_DB_PASS, LOCAL_DB
 
 
-LOG.info("Setting up connection to local db")
+_pool: PooledDB | None = None
 
-def get_db_connection():
-    """Get a fresh database connection each time"""
-    try:
-        connection = pymysql.connect(
+def _get_pool() -> PooledDB:
+    global _pool
+    if _pool is None:
+        LOG.info("Initialising database connection pool")
+        _pool = PooledDB(
+            creator=pymysql,
+            maxconnections=10,
+            mincached=2,
+            maxcached=5,
+            blocking=True,
             host=LOCAL_DB_HOST,
             user=LOCAL_DB_USER,
             password=LOCAL_DB_PASS,
-            database=LOCAL_DB
+            database=LOCAL_DB,
+            charset="utf8mb4",
         )
+    return _pool
+
+def get_db_connection():
+    """Get a connection from the pool"""
+    try:
+        connection = _get_pool().connection()
         cursor = connection.cursor()
         return connection, cursor
-    except pymysql.MySQLError as e:
-        LOG.error(f"Failed to connect to database: {e}")
+    except Exception as e:
+        LOG.error(f"Failed to get connection from pool: {e}")
         return None, None
 
 def get_refresh_token(user_id: str) -> str:
@@ -213,6 +227,41 @@ def is_demo_user(user_id: str) -> bool:
     except pymysql.MySQLError as e:
         LOG.error(f"Database error: {e}")
         return False
+    finally:
+        cur.close()
+
+def get_user_is_admin(user_id: str) -> bool:
+    """Get is_admin flag for a user by ID"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return False
+    try:
+        query = "SELECT is_admin FROM `budget-app-user` WHERE id = %s"
+        cur.execute(query, (user_id,))
+        result = cur.fetchone()
+        return bool(result[0]) if result else False
+    except pymysql.MySQLError as e:
+        LOG.error(f"Database error: {e}")
+        return False
+    finally:
+        cur.close()
+
+def username_or_email_exists(username: str, email: str) -> bool:
+    """Return True if username or email is already taken"""
+    conn, cur = get_db_connection()
+    if cur is None:
+        return True  # fail safe
+    try:
+        query = """
+            SELECT COUNT(*) FROM `budget-app-user`
+            WHERE user_name = %s OR email_address = %s
+        """
+        cur.execute(query, (username, email))
+        result = cur.fetchone()
+        return result[0] > 0
+    except pymysql.MySQLError as e:
+        LOG.error(f"Database error: {e}")
+        return True
     finally:
         cur.close()
 

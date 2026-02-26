@@ -34,13 +34,14 @@ def verify_refresh_token(old_token: str, user_id: str) -> str:
         if old_token != storedToken:
             return 401
 
-        user_data = {"sub": user_id}
+        is_admin = database.get_user_is_admin(user_id)
+        user_data = {"sub": user_id, "is_admin": is_admin}
         new_access_token = create_token(user_data, "access")
         new_refresh_token = create_token(user_data, "refresh")
 
         database.store_user_refresh_token(user_id, new_refresh_token)
         return {"access_token": new_access_token, "refresh_token": new_refresh_token}
-    
+
     except Exception as e:
         LOG.error(e)
 
