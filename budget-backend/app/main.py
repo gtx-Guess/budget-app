@@ -206,8 +206,27 @@ async def manual_sync(status: dict = Depends(auth.authenticated_user)):
 async def get_sync_status(status: dict = Depends(auth.authenticated_user)):
     """Return sync status and last sync time"""
     try:
+        if sync_service.last_sync is not None:
+            last_sync_str = sync_service.last_sync.isoformat() + 'Z'
+        else:
+            # Fall back to sync_log DB table so the value survives restarts
+            conn, cur = database.get_db_connection()
+            last_sync_str = None
+            if cur is not None:
+                try:
+                    cur.execute(
+                        "SELECT completed_at FROM sync_log WHERE status = 'completed' "
+                        "ORDER BY completed_at DESC LIMIT 1"
+                    )
+                    row = cur.fetchone()
+                    if row and row[0]:
+                        last_sync_str = row[0].isoformat() + 'Z'
+                finally:
+                    cur.close()
+                    conn.close()
+
         return JSONResponse(status_code=200, content={
-            "last_sync": sync_service.last_sync.isoformat() if sync_service.last_sync else None,
+            "last_sync": last_sync_str,
             "is_running": sync_service.is_running
         })
     except Exception as e:

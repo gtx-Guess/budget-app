@@ -146,6 +146,27 @@
                     </div>
                 </div>
             </div>
+            <!-- Data Sync Section -->
+            <div class="profile-section bg-matcha-light rounded-lg">
+                <h3 class="section-title text-matcha-400 font-semibold">Data Sync</h3>
+                <div class="sync-status-content">
+                    <div class="sync-info">
+                        <span class="text-matcha-700 sync-label">Last synced:</span>
+                        <span class="font-medium text-matcha-400">{{ formattedLastSyncTime }}</span>
+                    </div>
+                    <div class="button-container">
+                        <button
+                            @click="syncNow"
+                            :disabled="isSyncing"
+                            class="update-btn"
+                            :class="{ 'disabled': isSyncing }"
+                        >
+                            {{ isSyncing ? 'Syncing...' : 'Sync Now' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings Section -->
             <div class="settings-section bg-matcha-light rounded-lg">
                 <h3 class="text-matcha-400 font-semibold">Settings</h3>
@@ -200,6 +221,10 @@ const isUpdatingPassword = ref(false);
 const newEmail = ref('');
 const confirmEmail = ref('');
 const isUpdatingEmail = ref(false);
+
+// Data sync
+const lastSyncTime = ref<string | null>(null);
+const isSyncing = ref(false);
 
 // Alert functionality handled by handleMessage utility
 
@@ -284,6 +309,43 @@ const updatePassword = async () => {
         isUpdatingPassword.value = false;
     }
 };
+
+// Sync status
+const formattedLastSyncTime = computed(() => {
+    if (!lastSyncTime.value) return 'Never synced';
+    return new Date(lastSyncTime.value).toLocaleString();
+});
+
+const fetchSyncStatus = async () => {
+    try {
+        const response = await axios.get('/api/sync_status');
+        lastSyncTime.value = response.data.last_sync;
+    } catch (error) {
+        console.error('Failed to fetch sync status:', error);
+    }
+};
+
+const syncNow = async () => {
+    isSyncing.value = true;
+    try {
+        const response = await axios.post('/api/manual_sync');
+        showAlertMessage(response.data.message || 'Sync completed successfully!');
+        await fetchSyncStatus();
+    } catch (error) {
+        console.error('Sync error:', error);
+        let errorMessage = 'Sync failed';
+        if (axios.isAxiosError(error)) {
+            errorMessage = error.response?.data?.detail || error.message;
+        }
+        showAlertMessage(errorMessage);
+    } finally {
+        isSyncing.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchSyncStatus();
+});
 
 // Update email function
 const updateEmail = async () => {
@@ -648,6 +710,25 @@ html.dark .toggle-label.active {
     .detail-value {
         font-size: 13px;
     }
+}
+
+/* Data Sync Section */
+.sync-status-content {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.sync-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.sync-label {
+    font-weight: 500;
 }
 
 /* Account Settings Section */
