@@ -12,6 +12,10 @@ from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
 @asynccontextmanager
@@ -31,6 +35,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Trust X-Forwarded-For from nginx proxy so rate limiting uses real client IPs
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGIN,
@@ -40,34 +51,36 @@ app.add_middleware(
 )
 
 @app.post("/api/authenticated")
-async def authenticate_user(status: dict = Depends(auth.authenticated_user)) -> JSONResponse:
+@limiter.limit("30/minute")
+async def authenticate_user(request: Request, status: dict = Depends(auth.authenticated_user)) -> JSONResponse:
     return status
 
 @app.post("/api/refresh_token")
+@limiter.limit("20/minute")
 async def generate_new_tokens_using_refresh_token(request: Request, response: Response) -> JSONResponse:
     old_refresh_token = request.cookies.get("refresh_token")
     user_id = request.cookies.get("user_id")
 
     if not old_refresh_token:
         raise HTTPException(status_code=401, detail="Refresh Token Not Found")
-    
+
     try:
         payload = auth.verify_refresh_token(old_refresh_token, user_id)
         if payload == 401:
             raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-        
+
         response = JSONResponse(
             status_code = 200,
             content = {"message": "Tokens refreshed!"}
         )
-        
+
         response.set_cookie(
             key="access_token",
             value=payload.get('access_token'),
             httponly=True,
             max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
-            samesite="lax",
-            secure=False
+            samesite="strict",
+            secure=IS_PRODUCTION
         )
 
         response.set_cookie(
@@ -75,51 +88,53 @@ async def generate_new_tokens_using_refresh_token(request: Request, response: Re
             value=payload.get('refresh_token'),
             httponly=True,
             max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-            samesite="lax",
-            secure=False
+            samesite="strict",
+            secure=IS_PRODUCTION
         )
 
         return response
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/logout")
-async def logout(response: Response) -> JSONResponse:
+@limiter.limit("10/minute")
+async def logout(request: Request, response: Response) -> JSONResponse:
     # Create the response object
     response = JSONResponse(
         content={"message": "Logged out successfully."},
         status_code=200
     )
-    
+
     # Delete cookies
     response.delete_cookie(
         key="access_token",
-        path="/",  # Ensure this matches the path used to set the cookie
-        samesite="lax",
-        secure=False
+        path="/",
+        samesite="strict",
+        secure=IS_PRODUCTION
     )
     response.delete_cookie(
         key="refresh_token",
         path="/",
-        samesite="lax",
-        secure=False
+        samesite="strict",
+        secure=IS_PRODUCTION
     )
     response.delete_cookie(
         key="user_id",
         path="/",
-        samesite="lax",
-        secure=False
+        samesite="strict",
+        secure=IS_PRODUCTION
     )
-    
+
     return response
 
 @app.post("/api/login")
-async def login_user_with_credentials(userObject: LoginDetails, response: Response) -> JSONResponse:
+@limiter.limit("5/minute")
+async def login_user_with_credentials(request: Request, userObject: LoginDetails, response: Response) -> JSONResponse:
     try:
         validation_result = auth.validate(userObject)
         is_valid_user, user_id, is_admin = validation_result[0], validation_result[1], validation_result[2] if len(validation_result) > 2 else False
-        
+
         if is_valid_user:
             user_data = {"sub": user_id, "is_admin": is_admin}
             access_token = auth.create_token(user_data, "access")
@@ -128,7 +143,7 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
             refresh_token_resp = database.store_user_refresh_token(user_id, refresh_token)
             if refresh_token_resp != 200:
                 return JSONResponse(status_code=500, content={"message": "Internal Server Error!"})
-            
+
             response = JSONResponse(
                 status_code = 200,
                 content = {
@@ -136,14 +151,14 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                     "admin_login": is_admin
                 }
             )
-            
+
             response.set_cookie(
                 key="access_token",
                 value=access_token,
                 httponly=True,
                 max_age=ACCESS_TOKEN_EXPIRATION_MINUTES * 60,
-                samesite="lax",
-                secure=False
+                samesite="strict",
+                secure=IS_PRODUCTION
             )
 
             response.set_cookie(
@@ -151,8 +166,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=refresh_token,
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="lax",
-                secure=False
+                samesite="strict",
+                secure=IS_PRODUCTION
             )
 
             response.set_cookie(
@@ -160,8 +175,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value=user_id,
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="lax",
-                secure=False
+                samesite="strict",
+                secure=IS_PRODUCTION
             )
 
             response.set_cookie(
@@ -169,8 +184,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
                 value="true" if is_admin else "false",
                 httponly=True,
                 max_age=REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60,
-                samesite="lax",
-                secure=False
+                samesite="strict",
+                secure=IS_PRODUCTION
             )
 
             return response
@@ -181,7 +196,8 @@ async def login_user_with_credentials(userObject: LoginDetails, response: Respon
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post('/api/create_user')
-async def create_user_with_credentials(user: User) -> JSONResponse:
+@limiter.limit("3/minute")
+async def create_user_with_credentials(request: Request, user: User) -> JSONResponse:
     try:
         response = database.create_user(user, auth.hash_pwd(user.password))
         if response == 200:
@@ -190,7 +206,8 @@ async def create_user_with_credentials(user: User) -> JSONResponse:
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/manual_sync")
-async def manual_sync(status: dict = Depends(auth.authenticated_user)):
+@limiter.limit("3/minute")
+async def manual_sync(request: Request, status: dict = Depends(auth.authenticated_user)):
     """Trigger immediate sync from frontend"""
     try:
         user_id = status.get("user_id")
@@ -203,7 +220,8 @@ async def manual_sync(status: dict = Depends(auth.authenticated_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/sync_status")
-async def get_sync_status(status: dict = Depends(auth.authenticated_user)):
+@limiter.limit("30/minute")
+async def get_sync_status(request: Request, status: dict = Depends(auth.authenticated_user)):
     """Return sync status and last sync time"""
     try:
         if sync_service.last_sync is not None:
@@ -233,7 +251,8 @@ async def get_sync_status(status: dict = Depends(auth.authenticated_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get_local_accounts")
-async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
+@limiter.limit("30/minute")
+async def get_local_accounts(request: Request, status: dict = Depends(auth.authenticated_user)):
     """Get accounts from local database for authenticated user"""
     try:
         user_id = status.get("user_id")
@@ -248,7 +267,8 @@ async def get_local_accounts(status: dict = Depends(auth.authenticated_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get_local_transactions")
-async def get_local_transactions(status: dict = Depends(auth.authenticated_user)):
+@limiter.limit("30/minute")
+async def get_local_transactions(request: Request, status: dict = Depends(auth.authenticated_user)):
     """Get transactions from local database for authenticated user"""
     try:
         user_id = status.get("user_id")
@@ -263,7 +283,8 @@ async def get_local_transactions(status: dict = Depends(auth.authenticated_user)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get_current_user")
-async def get_current_user(status: dict = Depends(auth.authenticated_user)):
+@limiter.limit("30/minute")
+async def get_current_user(request: Request, status: dict = Depends(auth.authenticated_user)):
     """Get current authenticated user's details"""
     try:
         user_id = status.get("user_id")
@@ -282,7 +303,9 @@ async def get_current_user(status: dict = Depends(auth.authenticated_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/update_password")
+@limiter.limit("5/minute")
 async def update_password(
+    request: Request,
     password_data: dict,
     status: dict = Depends(auth.authenticated_user)
 ):
@@ -317,7 +340,9 @@ async def update_password(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/update_email")
+@limiter.limit("5/minute")
 async def update_email(
+    request: Request,
     email_data: dict,
     status: dict = Depends(auth.authenticated_user)
 ):
@@ -350,7 +375,8 @@ async def update_email(
 
 # Admin-only endpoints
 @app.get("/api/admin/users")
-async def get_all_users(status: dict = Depends(auth.admin_required)):
+@limiter.limit("10/minute")
+async def get_all_users(request: Request, status: dict = Depends(auth.admin_required)):
     """Get all users (admin only)"""
     try:
         users = database.get_all_users_admin()
@@ -359,7 +385,9 @@ async def get_all_users(status: dict = Depends(auth.admin_required)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/admin/reset_password")
+@limiter.limit("5/minute")
 async def admin_reset_password(
+    request: Request,
     reset_data: dict,
     status: dict = Depends(auth.admin_required)
 ):
@@ -387,7 +415,8 @@ async def admin_reset_password(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/admin/reset_demo_account")
-async def reset_demo_account(status: dict = Depends(auth.admin_required)):
+@limiter.limit("2/minute")
+async def reset_demo_account(request: Request, status: dict = Depends(auth.admin_required)):
     """Reset demo account password and regenerate data (admin only)"""
     try:
         # Reset demo password
@@ -411,7 +440,8 @@ async def reset_demo_account(status: dict = Depends(auth.admin_required)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/admin/user_stats")
-async def get_user_stats(status: dict = Depends(auth.admin_required)):
+@limiter.limit("10/minute")
+async def get_user_stats(request: Request, status: dict = Depends(auth.admin_required)):
     """Get user statistics (admin only)"""
     try:
         stats = database.get_user_statistics()

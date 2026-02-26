@@ -59,12 +59,15 @@ CREATE TABLE IF NOT EXISTS sync_log (
     error_message TEXT
 );
 
+-- Add is_admin column (idempotent via ON DUPLICATE KEY on the INSERT below)
+
 -- Insert initial Tiko user (password: hashed version of your actual password)
-INSERT INTO `budget-app-user` (id, user_name, first_name, last_name, email_address, password) VALUES 
-(1, 'Tigran', 'Tiko', 'User', 'tiko2204@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0jdXONOP3C')
-ON DUPLICATE KEY UPDATE 
+INSERT INTO `budget-app-user` (id, user_name, first_name, last_name, email_address, password, is_admin) VALUES
+(1, 'Tigran', 'Tiko', 'User', 'tiko2204@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0jdXONOP3C', 1)
+ON DUPLICATE KEY UPDATE
     first_name = COALESCE(first_name, 'Tiko'),
-    last_name = COALESCE(last_name, 'User');
+    last_name = COALESCE(last_name, 'User'),
+    is_admin = 1;
 
 -- Ensure existing accounts have user_id set
 UPDATE accounts SET user_id = 1 WHERE user_id IS NULL OR user_id = 0;

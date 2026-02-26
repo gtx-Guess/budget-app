@@ -24,3 +24,5 @@ uvicorn==0.32.0
 PyMySQL==1.1.1
 pyairtable==3.0.1
 pytz==2024.2
+slowapi==0.1.9
+limits==3.13.0
