@@ -67,11 +67,11 @@ def get_pwd_hash_from_db_by_user(userObject: object) -> dict:
     
     try:
         query = """
-            SELECT password, id FROM `budget-app-user` WHERE `user_name` = %s
+            SELECT password, id, is_admin FROM `budget-app-user` WHERE `user_name` = %s
         """
         cur.execute(query, userObject.user)
         results = cur.fetchone()
-        return {"password": results[0], "id": results[1]} if results else None
+        return {"password": results[0], "id": results[1], "is_admin": bool(results[2])} if results else None
     except pymysql.MySQLError as e:
         LOG.error(f"Database error: {e}")
         return {"error": "Database error"}

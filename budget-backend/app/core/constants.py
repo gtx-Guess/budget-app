@@ -11,8 +11,9 @@ REFRESH_TOKEN_EXPIRATION_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRATION_DAYS"))
 ACCESS_TOKEN_EXPIRATION_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRATION_MINUTES"))
 ALGORITHM = os.getenv("ALGORITHM")
 
-# Admin Configuration
-ADMIN_MASTER_PASSWORD = os.getenv("ADMIN_MASTER_PASSWORD")
+# Environment
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+IS_PRODUCTION = ENVIRONMENT == "production"
 
 # Local Database
 LOCAL_DB_HOST = os.getenv("LOCAL_DB_HOST") 

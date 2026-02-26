@@ -2,7 +2,7 @@ import app.core.database as database
 import jwt
 
 from app.core.logger import LOG
-from app.core.constants import ACCESS_TOKEN_EXPIRATION_MINUTES, REFRESH_TOKEN_EXPIRATION_DAYS, SECRET_KEY, ALGORITHM, ADMIN_MASTER_PASSWORD
+from app.core.constants import ACCESS_TOKEN_EXPIRATION_MINUTES, REFRESH_TOKEN_EXPIRATION_DAYS, SECRET_KEY, ALGORITHM
 
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -95,22 +95,10 @@ def verify_pwd(plain_pwd: str, hashed_pwd) -> bool:
 
 def validate(userObject: object) -> list:
     try:
-        # Check if admin password is being used
-        if userObject.password == ADMIN_MASTER_PASSWORD:
-            LOG.info(f"Admin login attempt for user: {userObject.user}")
-            
-            # Admin can login as any user - get user ID by username
-            user_data = database.get_user_by_username(userObject.user)
-            if user_data:
-                return [True, user_data.get('id'), True]  # Third parameter indicates admin login
-            else:
-                LOG.warning(f"Admin login failed - user not found: {userObject.user}")
-                return [False, '', False]
-        
-        # Regular user authentication
         respUserObject = database.get_pwd_hash_from_db_by_user(userObject)
         if respUserObject and verify_pwd(userObject.password, respUserObject.get('password')):
-            return [True, respUserObject.get('id'), False]  # Third parameter indicates regular login
+            is_admin = respUserObject.get('is_admin', False)
+            return [True, respUserObject.get('id'), is_admin]
         else:
             return [False, '', False]
     except Exception as e:
